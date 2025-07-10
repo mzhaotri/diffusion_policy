@@ -34,7 +34,7 @@ num_experiments: 50
 execution_horizon: 16
 
 number_of_tasks: 50
-max_traj_len: 1500
+max_traj_len: 2000
 dataset_mode: "test"
 
 task:
@@ -91,7 +91,7 @@ task:
     crf: 22
     dataset_path: ../robocasa/datasets_first/v0.1/single_stage/kitchen_drawer/CloseDrawer/2024-04-30/demo_im256.hdf5
     fps: 10
-    max_steps: 400
+    max_steps: 2000
     n_action_steps: 16
     n_envs: 1
     n_obs_steps: 2

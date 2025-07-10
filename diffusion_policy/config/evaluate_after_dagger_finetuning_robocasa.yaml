@@ -48,7 +48,7 @@ num_experiments: 50
 execution_horizon: 16
 
 number_of_tasks: 50
-max_traj_len: 400
+max_traj_len: 600
 dataset_mode: "test"
 
 hydra:

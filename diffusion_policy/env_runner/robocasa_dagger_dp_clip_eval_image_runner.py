@@ -168,7 +168,7 @@ class DAggerRobocasaImageRunner(BaseImageRunner):
             task_name,
             controller_configs,
             shape_meta:dict,
-            max_steps=400,
+            max_steps=2000,
             n_obs_steps=2,
             n_action_steps=8,
             render_obs_key='agentview_image',
@@ -186,7 +186,7 @@ class DAggerRobocasaImageRunner(BaseImageRunner):
             product_id=None,
         ):
         super().__init__(output_dir)
-
+        max_steps=2000
         self.device = device
         self.task_name = task_name
         self.controller_configs = controller_configs
@@ -984,6 +984,7 @@ class DAggerRobocasaImageRunner(BaseImageRunner):
             while not done:
                 if self.stop_flag:
                     print("Quitting loop...")
+                    self.stop_flag = False
                     break
                     # Handle any switches in acting agent
                 if acting_agent == 'human' and self.teleop_device.is_acting_agent is False:

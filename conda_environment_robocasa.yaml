@@ -1,4 +1,4 @@
-name: robocasa_umi
+name: robocasa_umi2
 channels:
   - pytorch
   - nvidia

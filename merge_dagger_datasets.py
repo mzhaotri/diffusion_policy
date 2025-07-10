@@ -246,7 +246,7 @@ def main():
     merge_h5_files_exact_dagger(dataset1_path, dataset2_path, f"{dagger_meta_folder}/merged_dagger_data.hdf5")
     summarize_h5_files(dataset1_path, dataset2_path)
     summarize_single_h5_file(f"{dagger_meta_folder}/merged_dagger_data.hdf5")
-    analyze_dagger_experience(dagger_meta_folder, 50)
+    # analyze_dagger_experience(dagger_meta_folder, 50)
     visualize_h5_videos(f"{dagger_meta_folder}/merged_dagger_data.hdf5")
 
 

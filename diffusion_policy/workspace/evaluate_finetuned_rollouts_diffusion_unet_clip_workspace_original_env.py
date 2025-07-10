@@ -717,6 +717,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         list_of_action_predictions = []
         # list_of_rewards = []
         list_of_success_at_times = []
+        list_of_observations = []
 
         # reset the environment
         env.reset()
@@ -781,6 +782,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
             for step in range(action_pred.shape[0]):
                 # print("action_pred[step]", action_pred[step])
                 obs, reward, done, info = env.step(action_pred[step])  # take action in the environment
+                list_of_observations.append(obs)
                 cam1 = env.sim.render(height=256, width=256, camera_name='robot0_agentview_left')[::-1]
                 cam2 = env.sim.render(height=256, width=256, camera_name='robot0_agentview_right')[::-1]
                 cam3 = env.sim.render(height=256, width=256, camera_name='robot0_eye_in_hand')[::-1]
@@ -832,7 +834,8 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
                             "obs_embeddings": [],
                             "action_predictions": [],
                             # "rewards": [],
-                            "success_at_times": []  
+                            "success_at_times": [],
+                            "observations": []
                         }
                     }
                 }
@@ -851,6 +854,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['action_predictions'] = list_of_action_predictions
         # fd_score_experiments_data['tasks'][task_name]['experiments'][demo]['rewards'] = list_of_rewards
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success_at_times'] = list_of_success_at_times
+        fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['observations'] = list_of_observations
 
         # dump to pickle with demo_idx 
         with open(f"{self.run_dir}/{task_name}_{demo_number}_fd_scores.pkl", "wb") as f:

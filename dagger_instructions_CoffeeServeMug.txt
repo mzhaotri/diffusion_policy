@@ -62,7 +62,7 @@ python get_band_from_scores_multitask.py CoffeePressButton
 
 
 7. Run DAgger Round 1
-HYDRA_FULL_ERROR=1 MUJOCO_GL=egl python dagger_interactive_rollout.py --config-name=run_faildetect_dagger_robocasa task_name='CoffeeServeMug' dagger.round=1 dagger.num_interactive_rollouts=25
+HYDRA_FULL_ERROR=1 MUJOCO_GL=egl python dagger_interactive_rollout.py --config-name=run_faildetect_dagger_robocasa task_name='CoffeeServeMug' dagger.round=0 dagger.num_interactive_rollouts=25
 
 
 8. Merge datafiles

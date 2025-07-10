@@ -277,7 +277,7 @@ class DAggerFDDiffusionUnetImageWorkspace(BaseWorkspace):
 
 
         # run dagger rollout
-        for dagger_ep in range(12, N_dagger_eps):
+        for dagger_ep in range(0, N_dagger_eps):
 
             dagger_hdf5_path = self.env_runner.run_interactive_dagger_rollout(self.dataset, self.policy, self.score_network, cp_band, dagger_ep, N_dagger_eps-1)
             print(f"DAgger rollout {dagger_ep} completed, data saved to {dagger_hdf5_path}")

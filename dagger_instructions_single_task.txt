@@ -1,3 +1,10 @@
+python robocasa/scripts/collect_demos.py --env CoffeeServeMug --device spacemouse --camera robot0_agentview_left --pos-sensitivity 2.0 --rot-sensitivity 2.0
+ OMP_NUM_THREADS=1 MPI_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python robocasa/scripts/dataset_states_to_obs.py --dataset /home/michellezhao/robocasa_dagger/robocasa/robocasa/models/assets/demonstrations_private/2025-07-10-12-10-55/demo.hdf5 
+
+OMP_NUM_THREADS=1 MPI_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python ../robocasa/robocasa/scripts/original_robocasa_dataset_states_to_obs.py --dataset ../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeeServeMug/2024-05-01/demo_gentex_im128_randcams.hdf5
+CUDA_VISIBLE_DEVICES=2 HYDRA_FULL_ERROR=1 python train.py --config-dir=. --config-name=train_robocasa_base_dp_clip_policy.yaml training.seed=42 task.name='CoffeeServeMug' experiment_tag='RedoDemos_ST_DAgger'
+
+
 While an ideal DAgger continual learning system would simply run through a single script, 
 the long training times of diffusion policy and other imitation learning policies on an
 increasingly large set of demonstrations makes having a single script less than ideal for debugging.
