@@ -64,7 +64,8 @@ finetune_type_epoch_list = {finetune_type1: ['eval_compute_rollout_scores_epoch_
     'eval_compute_rollout_scores_epoch_300_step_20130']
 }
 
-list_of_finetune_types = [finetune_type1, finetune_type3, finetune_type4, finetune_type5, finetune_type6, finetune_type7]
+# list_of_finetune_types = [finetune_type1, finetune_type3, finetune_type4, finetune_type5, finetune_type6, finetune_type7]
+list_of_finetune_types = [finetune_type1, finetune_type3, finetune_type4, finetune_type7]
 
 finetune_type_to_mean_success = {}
 finetune_type_to_ste_success = {}

@@ -34,6 +34,7 @@ from robocasa.utils.dataset_registry import get_ds_path
 from hydra.core.hydra_config import HydraConfig
 from robosuite.wrappers import DataCollectionWrapper, VisualizationWrapper, DAggerDataCollectionWrapper
 from robosuite.utils.binding_utils import MjRenderContext
+from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
 
 OmegaConf.register_new_resolver("eval", eval, replace=True)
 import mujoco
@@ -731,8 +732,39 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         # open matplotlib window for visualizing the camera images
         
         # plt.show()
-        pdb.set_trace()
+        
+        import trak
+        import diffusion_trak
+        from trak import TRAKer
+        from diffusion_trak import DiffusionModelOutput
+        from diffusion_trak import DiffusionGradientComputer
+        task = DiffusionModelOutput()
+        from torch.utils.data import DataLoader
+        self.payload_cfg.dataloader.batch_size = 1
+        train_dataloader = DataLoader(self.dataset, **self.payload_cfg.dataloader)
 
+        # print number of parameters in dataset
+        # print(f"Number of parameters in dataset: {sum(p.numel() for p in self.dataset.parameters() if p.requires_grad)}")
+        print(f"Number of parameters in policy: {sum(p.numel() for p in self.policy.parameters() if p.requires_grad)}")
+        pdb.set_trace()
+        model_traker = TRAKer(model=self.policy,task=task,gradient_computer=DiffusionGradientComputer,proj_dim=10,train_set_size=1000,save_dir=f'{self.run_dir}/trak_results',device='cuda:1')
+        # obs_traker = TRAKer(model=self.policy.obs_encoder,task=task,gradient_computer=DiffusionGradientComputer,proj_dim=64,train_set_size=len(self.dataset),save_dir=f'{self.run_dir}/trak_results_obs',device='cuda:2')
+
+        exp_name = 'test_model'
+        bs = 1
+        model_id = 0
+        model_traker.model.eval()
+        model_traker.gradient_computer.load_model_params(model_traker.model)
+        model_traker.saver.register_model_id(model_id, True)
+        model_traker.saver.init_experiment(exp_name, bs, model_id)
+        model_traker._last_ind_target = 0
+        model_traker._last_ind = 0
+        model_traker.ckpt_loaded = model_id
+        
+
+
+        # model_traker.start_scoring_checkpoint(exp_name="test_model", checkpoint=self.policy.model, model_id=0, num_targets=64)
+        # obs_traker.start_scoring_checkpoint(exp_name=exp_name, checkpoint=ckpt, model_id=model_id, num_targets=bs)
 
         for i in range(max_traj_len // action_horizon):
             # action = np.random.randn(*env.action_spec[0].shape) * 0.1
@@ -772,6 +804,38 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
             action_pred = np.squeeze(action_pred)
             action_pred = np.hstack((action_pred, [[0, 0, 0, 0, -1]] * action_pred.shape[0]))
             action_pred = action_pred[0:action_horizon]
+
+            # Get data attribution
+            # loop through dataloader
+            for train_batch_idx, train_batch in enumerate(train_dataloader):
+                print("train_batch_idx", train_batch_idx)
+                train_batch_curr = dict_apply(train_batch, lambda x: x.to(self.device, non_blocking=True))
+                
+                # left_image_data = train_batch_curr['obs']['left_image'].squeeze(1)
+                model_traker.gradient_computer._are_we_featurizing = True
+                
+                grads = model_traker.gradient_computer.compute_per_sample_grad(batch=train_batch_curr)
+                
+                # move grads to cuda:1
+                grads = grads.to('cuda:1')
+                grads = model_traker.projector.project(grads, model_id=model_traker.saver.current_model_id)
+                grads /= model_traker.normalize_factor
+                num_samples = 1
+                inds = np.arange(model_traker._last_ind, model_traker._last_ind + num_samples)
+                model_traker._last_ind += num_samples
+                model_traker.saver.current_store["grads"][inds] = (grads.to(model_traker.dtype).cpu().clone().detach())
+                
+
+                loss_grads = model_traker.gradient_computer.compute_loss_grad(train_batch_curr)
+                model_traker.saver.current_store["out_to_loss"][inds] = (loss_grads.to(model_traker.dtype).cpu().clone().detach())
+
+                model_traker.saver.current_store["is_featurized"][inds] = 1
+                model_traker.saver.serialize_current_model_id_metadata()
+                if train_batch_idx == 999:
+                    break
+            model_traker.finalize_features()
+            pdb.set_trace()
+                
 
             # compute scores
             # baseline_metric = logpZO_UQ(self.score_network, action_pred_infos_result['global_cond'])

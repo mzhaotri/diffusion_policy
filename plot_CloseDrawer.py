@@ -6,7 +6,7 @@ import pdb
 
 experiment_name = 'train_diffusion_unet_clip'
 experiment_tag = 'ST_OOD_DAgger'
-task_name = 'CoffeeServeMug'
+task_name = 'CloseDrawer'
 
 base_policy = 'base_policy'
 finetune_type1 = 'dagger_episode_0_freezeobsTrue_finetune_w_human_onlyFalse_useonlyoriginalFalse_fromscratchFalse_after_dagger'
@@ -24,29 +24,29 @@ finetune_type_to_name = {
 
 
 # get base policy sr and std error
-base_policy_path = f'data/outputs/{experiment_tag}_{experiment_name}_{task_name}/{base_policy}/eval_compute_rollout_scores_latest/successes.txt'
-successes = []
-with open(base_policy_path, 'r') as f:
-    for line in f:
-        if 'Failure' in line:
-            successes.append(0)
-        elif 'Success' in line:
-            successes.append(1)
-        else:
-            print(f'Unknown line: {line}')
-print("successes", successes)
-base_mean_success = np.mean(successes)
-base_ste_success = np.std(successes) / np.sqrt(len(successes))
-# base_mean_success = 0.16
-# base_ste_success = 0.06
+# base_policy_path = f'data/outputs/{experiment_tag}_{experiment_name}_{task_name}/{base_policy}/eval_compute_rollout_scores_latest/successes.txt'
+# successes = []
+# with open(base_policy_path, 'r') as f:
+#     for line in f:
+#         if 'Failure' in line:
+#             successes.append(0)
+#         elif 'Success' in line:
+#             successes.append(1)
+#         else:
+#             print(f'Unknown line: {line}')
+# print("successes", successes)
+# base_mean_success = np.mean(successes)
+# base_ste_success = np.std(successes) / np.sqrt(len(successes))
+base_mean_success = 0.8
+base_ste_success = 0.06
 
 print(f'Base Policy Success Rate: {base_mean_success:.2f} ± {base_ste_success:.2f}')
 
-epochs = [320, 340, 360, 380, 400, 420, 440, 460]
-# epochs = [120, 140, 160, 180, 200]
+# epochs = [320, 340, 360, 380, 400, 420, 440, 460]
+epochs = [660, 680, 700, 720, 740, 760, 780, 800]
 epoch_list = [f'eval_compute_rollout_scores_epoch_{epoch}' for epoch in epochs]
 
-list_of_finetune_types = [finetune_type1, finetune_type2, finetune_type3, finetune_type4]
+list_of_finetune_types = [finetune_type1]
 
 finetune_type_to_mean_success = {}
 finetune_type_to_ste_success = {}
@@ -105,7 +105,7 @@ plt.xticks(epochs_plot, rotation=45)
 plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(20))
 plt.gca().xaxis.set_minor_locator(ticker.MultipleLocator(5))
 plt.legend(prop={'size': 7}, loc='lower right')
-plt.ylim(-0.1, 1.1)
+# plt.ylim(-0.1, 1.1)
 # plt.tight_layout()
 
 plt.show()

@@ -1,0 +1,76 @@
+# ckpt_folder: train_diffusion_unet_clip_train_closedrawer_constant_time_human_only_dagger_450
+# ckpt_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_closedrawer/checkpoints/epoch_350_step_28079.ckpt
+# ckpt_path: data/outputs/01.50.03_{name}_train_time_varying_human_only_dagger_closedrawer/01.50.03/checkpoints/epoch_450_step_28583.ckpt
+
+# task_name: train_diffusion_unet_clip_train_closedrawer_fd_scores_original_env
+task_name: test
+
+experiment_name: train_diffusion_unet_clip
+experiment_tag: ST_OOD_DAgger
+# ckpt_path: data/outputs/${experiment_tag}_${name}_${task_name}/base_policy/checkpoints/latest.ckpt
+ckpt_path: data/outputs/${experiment_tag}_${name}_${task_name}/${dagger.ckpt_folder}/checkpoints/${dagger.ckpt_name}.ckpt
+
+
+# name: eval_diffusion_unet_clip
+name: ${experiment_name}
+_target_: diffusion_policy.workspace.get_eval_rollout_FD_recomputed_scores_diffusion_unet_clip_workspace_original_env.EvalComputeFDScoresDiffusionUnetImageWorkspace
+
+
+dagger:
+  ckpt_folder: 'finetune_w_human_only=True_from_base_after_dagger'
+  ckpt_name: 'latest'
+  ckpt_path: data/outputs/${experiment_tag}_${name}_${task_name}/${dagger.ckpt_folder}/checkpoints/${dagger.ckpt_name}.ckpt
+  dagger_episode: 0
+  dagger_data_path: data/outputs/${experiment_tag}_${name}_${task_name}/dagger_episode_${dagger.dagger_episode}/dagger_data
+  processed_dagger_data_path: data/outputs/${experiment_tag}_${name}_${task_name}/dagger_episode_${dagger.dagger_episode}/processed_dagger_data
+  N_dagger_eps: 25
+
+
+
+fail_detect:
+  # task_name: closedrawer_clip
+  # # base_policy_ckpt_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_closedrawer/checkpoints/epoch_350_step_28079.ckpt
+  # # save_obs_embeds_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_closedrawer/checkpoints/obs_embeds.pt
+  # # save_score_network_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_closedrawer/checkpoints/fd_score_network.ckpt
+
+  # base_policy_ckpt_path: data/outputs/01.50.03_{name}_train_time_varying_human_only_dagger_closedrawer/01.50.03/checkpoints/epoch_450_step_28583.ckpt
+  # save_obs_embeds_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_closedrawer/checkpoints/obs_embeds.pt
+  # save_score_network_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_closedrawer/checkpoints/fd_score_network.ckpt
+
+  # task_name: ${task_name}
+  # base_policy_ckpt_path: data/outputs/${experiment_tag}_${name}_${task_name}/base_policy/checkpoints/latest.ckpt
+  # save_obs_embeds_path: data/outputs/${experiment_tag}_${name}_${task_name}/base_policy/obs_embeds.pt
+  # save_score_network_path: data/outputs/${experiment_tag}_${name}_${task_name}/base_policy/fd_score_network.ckpt
+
+  task_name: ${task_name}
+  base_policy_ckpt_path: data/outputs/${experiment_tag}_${name}_${task_name}/${dagger.ckpt_folder}/checkpoints/${dagger.ckpt_name}.ckpt
+  save_obs_embeds_path: data/outputs/${experiment_tag}_${name}_${task_name}/base_policy/obs_embeds.pt
+  # original_score_network_path: data/outputs/${experiment_tag}_${name}_${FD_task_name}/base_policy/fd_score_network.ckpt
+  # save_dagger_succ_obs_embeds_path: data/outputs/${experiment_tag}_${name}_${task_name}/${dagger.ckpt_folder}/checkpoints/dagger_succ_obs_embeds
+  # save_dagger_fail_obs_embeds_path: data/outputs/${experiment_tag}_${name}_${task_name}/${dagger.ckpt_folder}/checkpoints/dagger_fail_obs_embeds
+  # save_score_network_path: data/outputs/${experiment_tag}_${name}_${task_name}/${dagger.ckpt_folder}/fd_score_network.ckpt
+  type_finetuned: 'fd_dagger_succ_added'
+  save_score_network_path: data/outputs/${experiment_tag}_${name}_${task_name}/${dagger.ckpt_folder}/fd_${fail_detect.type_finetuned}_added_score_network.ckpt
+
+
+
+num_inference_steps: 50
+
+environment_file: "demo_gentex_im128_randcams_100_mg_envs.pkl"
+# environment_file: "demo_gentex_im256_randcams_100_train_envs.pkl"
+num_experiments: 50
+
+execution_horizon: 16
+
+number_of_tasks: 50
+max_traj_len: 400
+dataset_mode: "test"
+
+hydra:
+  job:
+    override_dirname: ${name}
+  run:
+    dir: data/outputs/${experiment_tag}_${name}_${task_name}/compute_rollout_scores_dagger_episode_${dagger.dagger_episode}/${fail_detect.type_finetuned}_score_network
+  sweep:
+    dir: data/outputs/${experiment_tag}_${name}_${task_name}/compute_rollout_scores_dagger_episode_${dagger.dagger_episode}/${fail_detect.type_finetuned}_score_network
+    subdir: ${hydra.job.num}

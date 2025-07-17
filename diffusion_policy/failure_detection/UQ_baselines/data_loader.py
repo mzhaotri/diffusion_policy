@@ -19,7 +19,11 @@ def get_data(filename, type='square', adjust_shape = True, diffusion = False):
     
     # filename = f'{type}_data{suffix}.pt'
     data = torch.load(filename)
-    X, Y = data['X'], data['Y']
+    X = data['X']
+    if 'Y' in data:
+        Y = data['Y']
+    else:
+        Y = None
     # import pdb; pdb.set_trace()
     # in_dim_dict = {'square': 10, 'transport': 20, 'tool_hang': 20, 'can': 10, 'closedrawer': 7, 'closedrawer_600':7}
     # in_dim = in_dim_dict[type]

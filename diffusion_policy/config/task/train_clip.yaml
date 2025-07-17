@@ -29,7 +29,16 @@ shape_meta: &shape_meta
       horizon: ${task.img_obs_horizon} # int
       type: low_dim
       ignore_by_policy: False
-
+    # joint_pos:
+    #   shape: [7]
+    #   horizon: ${task.img_obs_horizon} # int
+    #   type: low_dim
+    #   ignore_by_policy: False
+    # gripper_pos:
+    #   shape: [2]
+    #   horizon: ${task.img_obs_horizon} # int
+    #   type: low_dim
+    #   ignore_by_policy: False
   action: 
     shape: 
       - ${task.action_dim}
