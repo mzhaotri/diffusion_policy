@@ -29,16 +29,16 @@ shape_meta: &shape_meta
       horizon: ${task.img_obs_horizon} # int
       type: low_dim
       ignore_by_policy: False
-    # joint_pos:
-    #   shape: [7]
-    #   horizon: ${task.img_obs_horizon} # int
-    #   type: low_dim
-    #   ignore_by_policy: False
-    # gripper_pos:
-    #   shape: [2]
-    #   horizon: ${task.img_obs_horizon} # int
-    #   type: low_dim
-    #   ignore_by_policy: False
+    joint_pos:
+      shape: [7]
+      horizon: ${task.img_obs_horizon} # int
+      type: low_dim
+      ignore_by_policy: False
+    gripper_pos:
+      shape: [2]
+      horizon: ${task.img_obs_horizon} # int
+      type: low_dim
+      ignore_by_policy: False
   action: 
     shape: 
       - ${task.action_dim}
@@ -67,7 +67,7 @@ dataset:
   action_dim: ${task.action_dim}
   swap_rgb: false
   mode: "train"
-  data_fraction: 0.5
+  data_fraction: 1.0
 
   lang_model: ${task.lang_model}
   human_path: "none"

@@ -233,6 +233,7 @@ class TrainDiffusionUnetImageWorkspace(BaseWorkspace):
                         leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
                     for batch_idx, batch in enumerate(tepoch):
                         # device transfer
+                        # pdb.set_trace()
                         batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
                         
                         # always use the latest batch

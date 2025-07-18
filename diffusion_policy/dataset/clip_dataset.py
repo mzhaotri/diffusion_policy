@@ -413,16 +413,16 @@ class InMemoryVideoDataset(Dataset):
         # gripper_image = gripper_image * 2 - 1
         # print("joint_pos shape:", joint_pos.shape)
         # print("gripper_pos shape:", gripper_pos.shape)
+        # pdb.set_trace()
         return {
             "obs": {
                 "task_description": clip_embedding,
                 "left_image": left_image,
                 "right_image": right_image,
                 "gripper_image": gripper_image,
-                # "joint_pos": joint_pos,
-                # "gripper_pos": gripper_pos,
-                # "demo_key": demo_key,
-                # "demo_step": demo_step,
+                "joint_pos": joint_pos,
+                "gripper_pos": gripper_pos,
+
             },
             "action": relative_actions_abs_normalized,
         }

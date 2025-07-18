@@ -720,7 +720,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         list_of_observations = []
 
         # reset the environment
-        env.reset()
+        obs = env.reset()
         zero_action = np.zeros(env.action_dim)
         env.step(zero_action)
 
@@ -731,7 +731,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         # open matplotlib window for visualizing the camera images
         
         # plt.show()
-        pdb.set_trace()
+        # pdb.set_trace()
 
 
         for i in range(max_traj_len // action_horizon):
@@ -757,15 +757,21 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
                 left_image_queue.append(video_img[0])
                 right_image_queue.append(video_img[1])
                 gripper_image_queue.append(video_img[2])
-
+            
             batch = self.convert_observations(self.dataset, left_image_queue, right_image_queue, gripper_image_queue, clip_embedding)
             batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
+            # pdb.set_trace()
+            batch['joint_pos'] = torch.tensor(obs['robot0_joint_pos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+            batch['gripper_pos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+            # joint_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_joint_pos'][indexed_start:end:self.stride]
+            # gripper_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start:end:self.stride]
 
             
             # task_description torch.Size([1, 1, 1024])
             # left_image torch.Size([1, 1, 3, 224, 224])
             # right_image torch.Size([1, 1, 3, 224, 224])
             # gripper_image torch.Size([1, 1, 3, 224, 224])
+            # pdb.set_trace()
 
             action_pred, action_pred_infos_result = self.policy.predict_action_with_infos(batch)
             action_pred = ((action_pred.detach().cpu().numpy() + 1) / 2) * (self.dataset.max - self.dataset.min) + self.dataset.min
