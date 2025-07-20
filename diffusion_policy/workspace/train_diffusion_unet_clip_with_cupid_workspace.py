@@ -233,7 +233,6 @@ class TrainDiffusionUnetImageWorkspace(BaseWorkspace):
                         leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
                     for batch_idx, batch in enumerate(tepoch):
                         # device transfer
-                        # pdb.set_trace()
                         batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
                         
                         # always use the latest batch
@@ -360,12 +359,12 @@ class TrainDiffusionUnetImageWorkspace(BaseWorkspace):
                     # We can't copy the last checkpoint here
                     # since save_checkpoint uses threads.
                     # therefore at this point the file might have been empty!
-                    topk_ckpt_path = topk_manager.get_ckpt_path(metric_dict)
+                    # topk_ckpt_path = topk_manager.get_ckpt_path(metric_dict)
 
-                    if topk_ckpt_path is not None:
-                        self.save_checkpoint(path=topk_ckpt_path)
+                    # if topk_ckpt_path is not None:
+                    #     self.save_checkpoint(path=topk_ckpt_path)
 
-                    checkpoint_filename = f"{topk_manager.save_dir}/epoch_{self.epoch}_step_{self.global_step}.ckpt"
+                    checkpoint_filename = f"{topk_manager.save_dir}/epoch_{self.epoch}.ckpt"
                     self.save_checkpoint(path=checkpoint_filename)
 
                     # recover the DDP model

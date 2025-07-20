@@ -48,7 +48,7 @@ from robocasa.environments import ALL_KITCHEN_ENVIRONMENTS
 from robocasa.utils.env_utils import create_env, run_random_rollouts
 import numpy as np
 from copy import deepcopy
-from diffusion_policy.policy.diffusion_unet_clip_policy_lora import DiffusionUnetTimmPolicyPolicyWithLoRA
+from omegaconf import open_dict
 ## Get metrics
 def adjust_xshape(x, in_dim):
     total_dim = x.shape[1]
@@ -144,6 +144,7 @@ def render_camera_mujoco(env, camera_name, width=256, height=256, save_path=None
 
     return rgb
 
+
 def create_eval_env_modified(
     env_name,
     # robosuite-related configs
@@ -168,6 +169,60 @@ def create_eval_env_modified(
     # controller_configs = load_controller_config(default_controller=controllers)   # somehow this line doesn't work for me
 
     # layout_and_style_ids = (layout_and_style_ids[id_selection],)
+
+    env_kwargs = dict(
+        env_name=env_name,
+        robots=robots,
+        controller_configs=controller_configs,
+        camera_names=camera_names,
+        camera_widths=camera_widths,
+        camera_heights=camera_heights,
+        has_renderer=False,
+        has_offscreen_renderer=True,
+        ignore_done=True,
+        use_object_obs=True,
+        use_camera_obs=True,
+        camera_depths=False,
+        seed=seed,
+        # renderer = 'mjviewer',
+        # render_camera="robot0_agentview_left",
+        obj_instance_split=obj_instance_split,
+        generative_textures=generative_textures,
+        randomize_cameras=randomize_cameras,
+        layout_and_style_ids=layout_and_style_ids,
+        translucent_robot=False,
+    )
+    
+
+    env = robosuite.make(**env_kwargs)
+
+    
+    return env
+
+def create_eval_env_modified_old(
+    env_name,
+    # robosuite-related configs
+    robots="PandaMobile",
+    controllers="OSC_POSE",
+    camera_names=[
+        "robot0_agentview_left",
+        "robot0_agentview_right",
+        "robot0_eye_in_hand",
+    ],
+    camera_widths=256,
+    camera_heights=256,
+    seed=None,
+    # robocasa-related configs
+    obj_instance_split="B",
+    generative_textures=None,
+    randomize_cameras=False,
+    layout_and_style_ids=((1, 1), (2, 2), (4, 4), (6, 9), (7, 10)),
+    controller_configs=None,
+    id_selection=None,
+):
+    # controller_configs = load_controller_config(default_controller=controllers)   # somehow this line doesn't work for me
+
+    layout_and_style_ids = (layout_and_style_ids[id_selection],)
 
     env_kwargs = dict(
         env_name=env_name,
@@ -233,10 +288,12 @@ TASK_NAME_TO_HUMAN_PATH = {'PnPCabToCounter': "../robocasa/datasets_first/v0.1/s
                            'TurnOnSinkFaucet': "../robocasa/datasets_first/v0.1/single_stage/kitchen_sink/TurnOnSinkFaucet/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
                            'CoffeePressButton': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeePressButton/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
                             'CoffeeServeMug': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeeServeMug/2024-05-01/demo_gentex_im128_randcams_im256.hdf5",
+                            'TurnOnMicrowave': "../robocasa/datasets_first/v0.1/single_stage/kitchen_microwave/TurnOnMicrowave/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
+                            'CloseSingleDoor': "../robocasa/datasets_first/v0.1/single_stage/kitchen_doors/CloseSingleDoor/2024-04-24/demo_gentex_im128_randcams_im256.hdf5",
                            }
 
 
-class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
+class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
     include_keys = ['global_step', 'epoch']
     exclude_keys = tuple()
 
@@ -257,11 +314,11 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         # Read task name and configure human_path and tasks
         task_name = cfg.task_name
         self.task_name = task_name
-        self.payload_cfg.task.dataset.tasks = {
-            task_name: None,
-        }
-        self.payload_cfg.task.dataset.tasks = {task_name: None}
-        self.payload_cfg.task.dataset.human_path = TASK_NAME_TO_HUMAN_PATH[task_name]
+        with open_dict(self.payload_cfg.task.dataset):
+            self.payload_cfg.task.dataset.tasks = {
+                task_name: None,
+            }
+            self.payload_cfg.task.dataset.human_path = TASK_NAME_TO_HUMAN_PATH[task_name]
 
         for key in self.payload_cfg.task.dataset.tasks:
             self.payload_cfg.task.dataset.tasks[key] = {
@@ -272,17 +329,9 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         cls = hydra.utils.get_class(self.payload_cfg._target_)
         workspace = cls(self.payload_cfg)
         workspace: BaseWorkspace
-        # pdb.set_trace()
         workspace.load_payload(payload, exclude_keys=None, include_keys=None)
         policy = workspace.ema_model
-        # policy = workspace.model # test if model is significantly worse than ema_model
         policy.num_inference_steps = self.cfg.num_inference_steps
-
-        # policy = DiffusionUnetTimmPolicyPolicyWithLoRA.from_policy(self.payload_cfg, self.model)
-        # # # # self.ema_lora_model = DiffusionUnetTimmPolicyPolicyWithLoRA.from_policy(self.cfg, self.ema_model)
-        # lora_rank = 256
-        # run_lora_on_obs_encoder = False
-        # policy.inject_lora(run_lora_on_obs_encoder,lora_rank)
 
         self.device = torch.device('cuda')
         policy.eval().to(self.device)
@@ -293,6 +342,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         self.dataset = dataset
 
         self.run_dir = HydraConfig.get().run.dir
+        self.experiment_tag = self.cfg.experiment_tag
 
         ## Get logpZO
         input_dim = 7
@@ -584,32 +634,9 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
 
 
     def run(self):
-        successes = []
         for i in range(0,50):
             print(colored(f"Running experiment {i+1}/50", "green"))
-            is_success = self.run_single_idx(i)
-            successes.append(is_success)
-
-        total_success_rate = sum(successes) / len(successes)
-        print(colored(f"Total Success Rate: {total_success_rate * 100:.2f}%", "blue"))
-        # save to txt file in run_dir
-        with open(os.path.join(self.run_dir, "successes.txt"), "w") as f:
-            for i, success in enumerate(successes):
-                f.write(f"Experiment {i+1}: {'Success' if success else 'Failure'}\n")
-            # write total success rates
-
-        # standard error of success rate
-        standard_error = np.std(successes) / np.sqrt(len(successes))
-        
-        with open(os.path.join(self.run_dir, "total_success_rate.txt"), "w") as f:
-            f.write(f"Total Success Rate: {total_success_rate * 100:.2f}%\n")
-        with open(os.path.join(self.run_dir, "standard_error.txt"), "w") as f:
-            f.write(f"Standard Error of Success Rate: {standard_error * 100:.2f}%\n")
-
-        # for ep_ folder in self.run_dir, delete folder
-        for folder in os.listdir(self.run_dir):
-            if folder.startswith("ep_"):
-                shutil.rmtree(os.path.join(self.run_dir, folder))
+            self.run_single_idx(i)
 
     def run_single_idx(self, idx):
         
@@ -619,40 +646,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         demo_number = idx
         
         task_name = self.task_name
-        # env = create_env(
-            
-        #     render_onscreen=True,
-        #     # camera_height=256,
-        #     # camera_width=256,
-        #     seed=None, # set seed=None to run unseeded
-        # )
-        # from robosuite import load_composite_controller_config
-
-        # Load the desired controller config with default Basic controller
-        # controller_config = {'type': 'HYBRID_MOBILE_BASE', 'body_parts': {'right': {'type': 'OSC_POSE', 'input_max': 1, 'input_min': -1, 'output_max': [0.05, 0.05, 0.05, 0.5, 0.5, 0.5], 'output_min': [-0.05, -0.05, -0.05, -0.5, -0.5, -0.5], 'kp': 150, 'damping_ratio': 1, 'impedance_mode': 'fixed', 'kp_limits': [0, 300], 'damping_ratio_limits': [0, 10], 'position_limits': None, 'orientation_limits': None, 'uncouple_pos_ori': True, 'control_delta': False, 'interpolation': None, 'ramp_ratio': 0.2, 'gripper': {'type': 'GRIP'}}, 'torso': {'type': 'JOINT_POSITION', 'interpolation': 'null', 'kp': 2000, 'control_delta': False}, 'base': {'type': 'JOINT_VELOCITY', 'interpolation': 'null', 'control_delta': False}}, 'composite_controller_specific_configs': {'body_part_ordering': ['right', 'right_gripper', 'base', 'torso'], 'right': {'type': 'OSC_POSE', 'input_max': 1, 'input_min': -1, 'output_max': [0.05, 0.05, 0.05, 0.5, 0.5, 0.5], 'output_min': [-0.05, -0.05, -0.05, -0.5, -0.5, -0.5], 'kp': 150, 'damping_ratio': 1, 'impedance_mode': 'fixed', 'kp_limits': [0, 300], 'damping_ratio_limits': [0, 10], 'position_limits': None, 'orientation_limits': None, 'uncouple_pos_ori': True, 'control_delta': False, 'interpolation': None, 'ramp_ratio': 0.2, 'gripper': {'type': 'GRIP'}}, 'torso': {'type': 'JOINT_POSITION', 'interpolation': 'null', 'kp': 2000, 'control_delta': False}, 'base': {'type': 'JOINT_VELOCITY', 'interpolation': 'null', 'control_delta': False}}}
-
-        # config = {
-        #     "env_name": task_name,
-        #     "robots": "PandaOmron",
-        #     "camera_names": [
-        #         "robot0_agentview_left",
-        #         "robot0_agentview_right",
-        #         "robot0_eye_in_hand",
-        #     ],
-        #     "camera_widths": 256,
-        #     "camera_heights": 256,
-        #     "controller_configs": controller_config,
-        # }
-        # env = robosuite.make(
-        #     **config,
-        #     has_renderer=False,
-        #     has_offscreen_renderer=True,
-        #     ignore_done=False,
-        #     use_camera_obs=False,
-        #     # control_freq=20,
-        #     layout_and_style_ids=((1, 1), (2, 2), (4, 4), (6, 9), (7, 10)),
-        #     renderer='mjviewer',
-        # )
+        
 
         with open("datasets/v0.1/single_stage/kitchen_pnp/PnPCabToCounter/2024-04-24/demo_gentex_im256_randcams_100_train_envs.pkl", "rb") as pickle_file:
             environment_data = pickle.load(pickle_file)
@@ -668,110 +662,46 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
 
         environment_data['env_kwargs']['has_renderer'] = True
         environment_data['env_kwargs']["renderer"] = "mjviewer"
-        env = create_eval_env_modified(env_name=task_name, seed=idx, controller_configs=environment_data['env_kwargs']['controller_configs'], id_selection=demo_number//10)
-        # pdb.set_trace()
-
-        # Wrap this with visualization wrapper
-        env = VisualizationWrapper(env)
-
-        
-
-        # Grab reference to controller config and convert it to json-encoded string
-        # pdb.set_trace()
-        # env_info = json.dumps(config)
-
-        # wrap the environment with data collection wrapper
-        tmp_directory = self.run_dir
-        env = DAggerDataCollectionWrapper(env, tmp_directory)
-
-        # Make indicator sites fully transparent
-        indicators = ['gripper0_right_grip_site', 'gripper0_right_grip_site_cylinder']
-        for indicator_name in indicators:
-            site_id = env.env.sim.model.site_name2id(indicator_name)
-            env.env.sim.model.site_rgba[site_id] = [1, 0, 0, 0.0]
-
-        # sphere_id = env.sim.model.site_name2id("gripper0_right_grip_site")
-        # cylinder_id = env.sim.model.site_name2id("gripper0_right_grip_site_cylinder")
-
-        # env.sim.model.site_rgba[sphere_id] = [0.0, 0.0, 0.0, 0.0]
-        # env.sim.model.site_rgba[cylinder_id] = [0.0, 0.0, 0.0, 0.0]
-
-
-        # env.render()
-
+        env = create_eval_env_modified(env_name=task_name, controller_configs=environment_data['env_kwargs']['controller_configs'], id_selection=demo_number//10, seed=idx)
         task_description = env.get_ep_meta()["lang"]
         task_description = open_clip.tokenize([task_description]) # returns torch.Size([1, 77])
         with torch.no_grad():
             clip_embedding = self.dataset.lang_model(task_description.to(self.device)).cpu().unsqueeze(0) # returns torch.Size([1, 1, 1024])
 
-        video_path = f'{self.run_dir}/{task_name}_{demo_number}.mp4'
-        video_writer = imageio.get_writer(video_path, fps=30)
+        
 
-        left_image_queue = deque(maxlen=self.payload_cfg.task.img_obs_horizon)
-        right_image_queue = deque(maxlen=self.payload_cfg.task.img_obs_horizon)
-        gripper_image_queue = deque(maxlen=self.payload_cfg.task.img_obs_horizon)
+        # open pickle file from original rollouts
+        dataset_path_robocasa = f'data/outputs/{self.experiment_tag}_train_diffusion_unet_clip_{self.task_name}/compute_rollout_scores/CoffeeServeMug_{idx}_fd_scores.pkl'
+        with open(dataset_path_robocasa, "rb") as pickle_file:
+            data = pickle.load(pickle_file)
+            for demo_key in data['tasks'][task_name]['experiments']:
+                img_observations = data['tasks'][task_name]['experiments'][idx]['img_observations']
+                original_list_of_success_at_times = data['tasks'][task_name]['experiments'][demo_key]['success_at_times']
+                is_original_success = data['tasks'][task_name]['experiments'][demo_key]['success']
 
         list_of_logpZO_scores = []
         list_of_img_observations = []
         list_of_obs_embeddings = []
         list_of_action_predictions = []
-        # list_of_rewards = []
-        list_of_success_at_times = []
-        list_of_observations = []
 
-        # reset the environment
-        obs = env.reset()
-        zero_action = np.zeros(env.action_dim)
-        env.step(zero_action)
+        for i in range(len(img_observations)):
 
-        # get task language
-        lang = env.get_ep_meta()["lang"]
-        print("Instruction:", lang)
-        
-        # open matplotlib window for visualizing the camera images
-        
-        # plt.show()
-        # pdb.set_trace()
+            cam1 = img_observations[i][0]
+            cam2 = img_observations[i][1]
+            cam3 = img_observations[i][2]
 
 
-        for i in range(max_traj_len // action_horizon):
-            # action = np.random.randn(*env.action_spec[0].shape) * 0.1
-            
-            # pdb.set_trace()
-            # env.render()  # render on display
-            # get three camera images
-            # cam1 = obs['robot0_agentview_left_image']
-            # cam2 = obs['robot0_agentview_right_image']
-            # cam3 = obs['robot0_eye_in_hand_image']
-            cam1 = env.sim.render(height=256, width=256, camera_name='robot0_agentview_left')[::-1]
-            cam2 = env.sim.render(height=256, width=256, camera_name='robot0_agentview_right')[::-1]
-            cam3 = env.sim.render(height=256, width=256, camera_name='robot0_eye_in_hand')[::-1]
-
-            # concatenate the three camera images horizontally
-            video_img = [cam1, cam2, cam3]
-            left_image_queue.append(video_img[0])
-            right_image_queue.append(video_img[1])
-            gripper_image_queue.append(video_img[2])
-
-            while(len(left_image_queue)) < self.payload_cfg.task.img_obs_horizon:
-                left_image_queue.append(video_img[0])
-                right_image_queue.append(video_img[1])
-                gripper_image_queue.append(video_img[2])
-            
-            batch = self.convert_observations(self.dataset, left_image_queue, right_image_queue, gripper_image_queue, clip_embedding)
+            batch = {"task_description": clip_embedding,
+                     "left_image": cam1,
+                     "right_image": cam2,
+                     "gripper_image": cam3}
             batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
-            # pdb.set_trace()
-            batch['joint_pos'] = torch.tensor(obs['robot0_joint_pos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
-            batch['gripper_pos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
-            # joint_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_joint_pos'][indexed_start:end:self.stride]
-            # gripper_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start:end:self.stride]
 
             
             # task_description torch.Size([1, 1, 1024])
             # left_image torch.Size([1, 1, 3, 224, 224])
             # right_image torch.Size([1, 1, 3, 224, 224])
             # gripper_image torch.Size([1, 1, 3, 224, 224])
-            # pdb.set_trace()
 
             action_pred, action_pred_infos_result = self.policy.predict_action_with_infos(batch)
             action_pred = ((action_pred.detach().cpu().numpy() + 1) / 2) * (self.dataset.max - self.dataset.min) + self.dataset.min
@@ -780,51 +710,19 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
             action_pred = action_pred[0:action_horizon]
 
             # compute scores
-            # baseline_metric = logpZO_UQ(self.score_network, action_pred_infos_result['global_cond'])
-            baseline_metric = 0
+            baseline_metric = logpZO_UQ(self.score_network, action_pred_infos_result['global_cond'])
 
             print(i)
             # pdb.set_trace()
 
-            for step in range(action_pred.shape[0]):
-                # print("action_pred[step]", action_pred[step])
-                obs, reward, done, info = env.step(action_pred[step])  # take action in the environment
-                list_of_observations.append(obs)
-                cam1 = env.sim.render(height=256, width=256, camera_name='robot0_agentview_left')[::-1]
-                cam2 = env.sim.render(height=256, width=256, camera_name='robot0_agentview_right')[::-1]
-                cam3 = env.sim.render(height=256, width=256, camera_name='robot0_eye_in_hand')[::-1]
-
-                # concatenate the three camera images horizontally
-                video_img = [cam1, cam2, cam3]
-                video_img = np.concatenate(
-                    video_img, axis=1
-                )  # concatenate horizontally
-                video_writer.append_data(video_img)
-                # update the matplotlib window with the new images
-                # if i%10==0:
-                #     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-                #     axs[0].imshow(cam1)
-                #     axs[1].imshow(cam2)
-                #     axs[2].imshow(cam3)
-                #     plt.savefig(f"{self.run_dir}/rollout{idx}_video_frame_{i}_{step}.png")
-                #     plt.close()
-                if env._check_success():
-                    break
-
-
+            
             # collect data
-            is_success = env._check_success()
-            list_of_success_at_times.append(is_success)
             print("LOGPZO: baseline_metric:", baseline_metric)
             list_of_logpZO_scores.append(baseline_metric)
             list_of_img_observations.append([batch['left_image'], batch['right_image'], batch['gripper_image']])
             list_of_obs_embeddings.append(action_pred_infos_result['global_cond'])
             list_of_action_predictions.append(action_pred)
-            
-            # list_of_rewards.append(env._get_reward())
 
-            if is_success:
-                break
 
         # save data
 
@@ -842,8 +740,7 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
                             "obs_embeddings": [],
                             "action_predictions": [],
                             # "rewards": [],
-                            "success_at_times": [],
-                            "observations": []
+                            "success_at_times": []  
                         }
                     }
                 }
@@ -851,18 +748,14 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         }
 
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['status'] = 'done'
-        if is_success:
-            fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success'] = 1
-        else:
-            fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success'] = 0
+        fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success'] = is_original_success
 
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['logpzo_scores'] = list_of_logpZO_scores
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['img_observations'] = list_of_img_observations
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['obs_embeddings'] = list_of_obs_embeddings
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['action_predictions'] = list_of_action_predictions
         # fd_score_experiments_data['tasks'][task_name]['experiments'][demo]['rewards'] = list_of_rewards
-        fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success_at_times'] = list_of_success_at_times
-        fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['observations'] = list_of_observations
+        fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success_at_times'] = original_list_of_success_at_times
 
         # dump to pickle with demo_idx 
         with open(f"{self.run_dir}/{task_name}_{demo_number}_fd_scores.pkl", "wb") as f:
@@ -870,17 +763,8 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
         fd_score_experiments_data = {}
             
 
-        print(colored(f"Saved video to {video_path}", "green"))
-        print("success?", is_success)
-        video_writer.close()
-
-        # close the matplotlib window
-        # plt.close(fig)
-        
-        # close renderer
-        # env._renderer.close()
         env.close()
-        return 1 if is_success else 0
+        return 
 
 
 

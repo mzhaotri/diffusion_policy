@@ -358,9 +358,6 @@ class InMemoryVideoDataset(Dataset):
             indexed_start = max(start, 0)
             end = demo_step+1
 
-            # print("self.hdf5_datasets[task_index]['data'][demo_key]['obs']", self.hdf5_datasets[task_index]['data'][demo_key]['obs'].keys())
-            joint_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_joint_pos'][indexed_start:end:self.stride]
-            gripper_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start:end:self.stride]
             left_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_left_image'][indexed_start:end:self.stride]
             right_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_right_image'][indexed_start:end:self.stride]
             gripper_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eye_in_hand_image'][indexed_start:end:self.stride]
@@ -379,10 +376,6 @@ class InMemoryVideoDataset(Dataset):
                 padding = np.concatenate([first_element] * pad_size, axis=0)
                 gripper_image = np.concatenate([padding, gripper_image], axis=0)
 
-                # pad the joint positions and gripper positions
-                joint_pos = np.concatenate([np.zeros((pad_size, joint_pos.shape[1])), joint_pos], axis=0)
-                gripper_pos = np.concatenate([np.zeros((pad_size, gripper_pos.shape[1])), gripper_pos], axis=0)
-
             left_image = np.stack([self.convert_frame(frame=frame, size=(round(self.frame_width/self.aug['crop']),round(self.frame_height/self.aug['crop'])), swap_rgb=self.swap_rgb) for frame in left_image])
             right_image = np.stack([self.convert_frame(frame=frame, size=(round(self.frame_width/self.aug['crop']),round(self.frame_height/self.aug['crop'])), swap_rgb=self.swap_rgb) for frame in right_image])
             gripper_image = np.stack([self.convert_frame(frame=frame, size=(round(self.frame_width/self.aug['crop']),round(self.frame_height/self.aug['crop'])), swap_rgb=self.swap_rgb) for frame in gripper_image])
@@ -395,8 +388,6 @@ class InMemoryVideoDataset(Dataset):
         right_image = torch.tensor(right_image, dtype=torch.float32)
         gripper_image = torch.tensor(gripper_image, dtype=torch.float32)
         relative_actions_abs_normalized = torch.tensor(relative_actions_abs_normalized, dtype=torch.float32)
-        joint_pos = torch.tensor(joint_pos, dtype=torch.float32)
-        gripper_pos = torch.tensor(gripper_pos, dtype=torch.float32)
 
         # Rescale from [-1, 1] to [0, 1] for transforms
         left_image = (left_image + 1) / 2
@@ -411,18 +402,14 @@ class InMemoryVideoDataset(Dataset):
         # left_image = left_image * 2 - 1
         # right_image = right_image * 2 - 1
         # gripper_image = gripper_image * 2 - 1
-        # print("joint_pos shape:", joint_pos.shape)
-        # print("gripper_pos shape:", gripper_pos.shape)
-        # pdb.set_trace()
+
         return {
             "obs": {
                 "task_description": clip_embedding,
                 "left_image": left_image,
                 "right_image": right_image,
                 "gripper_image": gripper_image,
-                "joint_pos": joint_pos,
-                "gripper_pos": gripper_pos,
-
+                "demo_key": demo_key,
             },
             "action": relative_actions_abs_normalized,
         }

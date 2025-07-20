@@ -47,6 +47,9 @@ CUDA_VISIBLE_DEVICES=2 python get_demo_obs_encodings.py --config-name=get_obs_em
 CUDA_VISIBLE_DEVICES=2 python train_fail_detect.py --config-name=train_fd_score_network_robocasa task.name='CoffeeServeMug'
 
 
+Retrain 
+
+
 6. Use Score Networks to get observation scores on rollouts
 CUDA_VISIBLE_DEVICES=2 python score_rollouts.py --config-name=compute_fd_rollout_scores_robocasa task_name='CoffeeServeMug'
 
@@ -67,6 +70,25 @@ HYDRA_FULL_ERROR=1 MUJOCO_GL=egl python dagger_interactive_rollout.py --config-n
 
 8. Merge datafiles
 python merge_dagger_datasets.py --task_name CoffeeServeMug --dataset1 train --dataset2 dagger_episode_0
+
+
+8b. Examine Observation Embedding diferences
+CUDA_VISIBLE_DEVICES=2 python get_demo_obs_encodings.py --config-name=examine_obs_encodings_network_robocasa task.name='CoffeeServeMug'
+
+
+8c. Get success fail observation embeddings
+CUDA_VISIBLE_DEVICES=2 python get_demo_obs_encodings.py --config-name=get_post_dagger_obs_encodings_network_robocasa dagger.ckpt_folder='dagger_episode_0_freezeobsTrue_finetune_w_human_onlyFalse_useonlyoriginalFalse_fromscratchFalse_after_dagger' task_name='CoffeeServeMug' dagger.ckpt_name='epoch_320'
+
+8d. 
+CUDA_VISIBLE_DEVICES=2 python train_fail_detect.py --config-name=retrain_w_dagger_fd_score_network_robocasa dagger.ckpt_folder='dagger_episode_0_freezeobsTrue_finetune_w_human_onlyFalse_useonlyoriginalFalse_fromscratchFalse_after_dagger' task_name='CoffeeServeMug' dagger.ckpt_name='epoch_320'
+
+8e. Score rollouts
+CUDA_VISIBLE_DEVICES=0 python score_rollouts.py --config-name=compute_rescored_fd_rollouts_robocasa task_name='CoffeeServeMug'  dagger.ckpt_folder='dagger_episode_0_freezeobsTrue_finetune_w_human_onlyFalse_useonlyoriginalFalse_fromscratchFalse_after_dagger' dagger.ckpt_name='epoch_320'
+
+python get_band_from_recomputed_scores_multitask.py CoffeeServeMug --rollout_folder=compute_rollout_scores_dagger_episode_0 --score_type_folder=fd_score_network
+
+python get_band_from_recomputed_scores_multitask.py CoffeeServeMug --rollout_folder=compute_rollout_scores_dagger_episode_0 --score_type_folder=fd_dagger_succ_added_score_network
+
 
 9. Retraining
 
@@ -94,6 +116,12 @@ D. Finetuning with Orthogonal Projection
 
 E. Finetuning with DriftDAgger
 I may skip this, because the rank scheduler is over multiple demos being added in one by one, I've only got one batch here.
+
+
+E.2 Data Attribution
+CUDA_VISIBLE_DEVICES=1 python evaluate.py --config-name=analyze_with_cupid_after_dagger_finetuning_robocasa dagger.ckpt_folder='base_policy' task_name='CoffeeServeMug' dagger.ckpt_name='latest'
+
+
 
 
 10. Evaluate after finetuning

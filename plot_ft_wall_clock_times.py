@@ -29,6 +29,7 @@ finetune_type_to_name = {
 
 
 list_of_finetune_types = [finetune_type1, finetune_type3, finetune_type4, finetune_type5, finetune_type6, finetune_type7]
+list_of_finetune_types = [finetune_type1, finetune_type3, finetune_type4,finetune_type7]
 
 finetune_type_to_wall_clock_times = {}
 epochs = [220, 240, 260, 280, 300]

@@ -275,9 +275,14 @@ class TimmObsEncoder(ModuleAttrMixin):
 
         # process lowdim input
         for key in self.low_dim_keys:
+            # if key not in obs_dict:
+            #     continue
             data = obs_dict[key]
             B, T = data.shape[:2]
             assert B == batch_size
+            if data.shape[2:] != self.key_shape_map[key]:
+                print(f"Warning: {key} shape {data.shape[2:]} does not match expected shape {self.key_shape_map[key]}")
+                import pdb; pdb.set_trace()
             assert data.shape[2:] == self.key_shape_map[key]
             features.append(data.reshape(B, -1))
         

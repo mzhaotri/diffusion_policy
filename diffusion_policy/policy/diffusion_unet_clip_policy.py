@@ -269,6 +269,131 @@ class DiffusionUnetTimmPolicy(BaseImagePolicy):
         loss = loss.mean()
 
         return loss
+    
+
+    def compute_loss_for_feature_given_batch(self, batch):
+        # normalize input
+        assert 'valid_mask' not in batch
+        # nobs = self.normalizer.normalize(batch['obs'])
+        # nactions = self.normalizer['action'].normalize(batch['action'])
+        nobs = batch['obs']
+        nactions = batch['action']
+        # pdb.set_trace()
+        assert self.obs_as_global_cond
+        global_cond = self.obs_encoder(nobs)
+
+        # train on multiple diffusion samples per obs
+        if self.train_diffusion_n_samples != 1:
+            # repeat obs features and actions multiple times along the batch dimension
+            # each sample will later have a different noise sample, effecty training 
+            # more diffusion steps per each obs encoder forward pass
+            global_cond = torch.repeat_interleave(global_cond, 
+                repeats=self.train_diffusion_n_samples, dim=0)
+            nactions = torch.repeat_interleave(nactions, 
+                repeats=self.train_diffusion_n_samples, dim=0)
+
+        trajectory = nactions
+        # Sample noise that we'll add to the images
+        noise = torch.randn(trajectory.shape, device=trajectory.device)
+        # input perturbation by adding additonal noise to alleviate exposure bias
+        # reference: https://github.com/forever208/DDPM-IP
+        noise_new = noise + self.input_pertub * torch.randn(trajectory.shape, device=trajectory.device)
+
+        # Sample a random timestep for each image
+        timesteps = torch.randint(
+            0, self.noise_scheduler.config.num_train_timesteps, 
+            (nactions.shape[0],), device=trajectory.device
+        ).long()
+
+        # Add noise to the clean images according to the noise magnitude at each timestep
+        # (this is the forward diffusion process)
+        noisy_trajectory = self.noise_scheduler.add_noise(
+            trajectory, noise_new, timesteps)
+        
+        # Predict the noise residual
+        pred = self.model(
+            noisy_trajectory,
+            timesteps, 
+            local_cond=None,
+            global_cond=global_cond
+        )
+
+        pred_type = self.noise_scheduler.config.prediction_type 
+        if pred_type == 'epsilon':
+            target = noise
+        elif pred_type == 'sample':
+            target = trajectory
+        else:
+            raise ValueError(f"Unsupported prediction type {pred_type}")
+
+        loss = F.mse_loss(pred, target, reduction='none')
+        # loss = loss.type(loss.dtype)
+        # loss = reduce(loss, 'b ... -> b (...)', 'mean')
+        # loss = loss.mean()
+
+        return loss
+    
+    def compute_loss_for_feature(self, obs, action, timesteps):
+        # normalize input
+        # assert 'valid_mask' not in batch
+        # nobs = self.normalizer.normalize(batch['obs'])
+        # nactions = self.normalizer['action'].normalize(batch['action'])
+        nobs = obs
+        nactions = action
+        # pdb.set_trace()
+        assert self.obs_as_global_cond
+        global_cond = self.obs_encoder(nobs)
+
+        # train on multiple diffusion samples per obs
+        if self.train_diffusion_n_samples != 1:
+            # repeat obs features and actions multiple times along the batch dimension
+            # each sample will later have a different noise sample, effecty training 
+            # more diffusion steps per each obs encoder forward pass
+            global_cond = torch.repeat_interleave(global_cond, 
+                repeats=self.train_diffusion_n_samples, dim=0)
+            nactions = torch.repeat_interleave(nactions, 
+                repeats=self.train_diffusion_n_samples, dim=0)
+
+        trajectory = nactions
+        # Sample noise that we'll add to the images
+        noise = torch.randn(trajectory.shape, device=trajectory.device)
+        # input perturbation by adding additonal noise to alleviate exposure bias
+        # reference: https://github.com/forever208/DDPM-IP
+        noise_new = noise + self.input_pertub * torch.randn(trajectory.shape, device=trajectory.device)
+
+        # Sample a random timestep for each image
+        # timesteps = torch.randint(
+        #     0, self.noise_scheduler.config.num_train_timesteps, 
+        #     (nactions.shape[0],), device=trajectory.device
+        # ).long()
+
+        # Add noise to the clean images according to the noise magnitude at each timestep
+        # (this is the forward diffusion process)
+        noisy_trajectory = self.noise_scheduler.add_noise(
+            trajectory, noise_new, timesteps)
+        
+        # Predict the noise residual
+        pred = self.model(
+            noisy_trajectory,
+            timesteps, 
+            local_cond=None,
+            global_cond=global_cond
+        )
+
+        pred_type = self.noise_scheduler.config.prediction_type 
+        if pred_type == 'epsilon':
+            target = noise
+        elif pred_type == 'sample':
+            target = trajectory
+        else:
+            raise ValueError(f"Unsupported prediction type {pred_type}")
+
+        loss = F.mse_loss(pred, target, reduction='none')
+        loss = loss.type(loss.dtype)
+        loss = reduce(loss, 'b ... -> b (...)', 'mean')
+        loss = loss.mean()
+
+        return loss
 
     def forward(self, batch):
         return self.compute_loss(batch)
