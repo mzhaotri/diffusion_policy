@@ -8,6 +8,7 @@ robocasa/
 images/
 *.ckpt
 *.hdf5
+*.mp4
 bikerotor_faildetect/
 
 bin
