@@ -358,12 +358,14 @@ class InMemoryVideoDataset(Dataset):
             indexed_start = max(start, 0)
             end = demo_step+1
 
-            # print("self.hdf5_datasets[task_index]['data'][demo_key]['obs']", self.hdf5_datasets[task_index]['data'][demo_key]['obs'].keys())
-            joint_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_joint_pos'][indexed_start:end:self.stride]
-            gripper_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start:end:self.stride]
             left_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_left_image'][indexed_start:end:self.stride]
             right_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_right_image'][indexed_start:end:self.stride]
             gripper_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eye_in_hand_image'][indexed_start:end:self.stride]
+            robot0_eef_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eef_pos'][indexed_start:end:self.stride]
+            robot0_eef_quat = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eef_quat'][indexed_start:end:self.stride]
+            robot0_gripper_qpos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start:end:self.stride]
+
+            # import pdb; pdb.set_trace()
 
             pad_size = self.obs_horizon - left_image.shape[0]
             if pad_size > 0:
@@ -380,8 +382,17 @@ class InMemoryVideoDataset(Dataset):
                 gripper_image = np.concatenate([padding, gripper_image], axis=0)
 
                 # pad the joint positions and gripper positions
-                joint_pos = np.concatenate([np.zeros((pad_size, joint_pos.shape[1])), joint_pos], axis=0)
-                gripper_pos = np.concatenate([np.zeros((pad_size, gripper_pos.shape[1])), gripper_pos], axis=0)
+                first_element = np.expand_dims(robot0_eef_pos[0], axis=0)
+                padding = np.concatenate([first_element] * pad_size, axis=0)
+                robot0_eef_pos = np.concatenate([padding, robot0_eef_pos], axis=0)
+
+                first_element = np.expand_dims(robot0_eef_quat[0], axis=0)
+                padding = np.concatenate([first_element] * pad_size, axis=0)
+                robot0_eef_quat = np.concatenate([padding, robot0_eef_quat], axis=0)
+
+                first_element = np.expand_dims(robot0_gripper_qpos[0], axis=0)
+                padding = np.concatenate([first_element] * pad_size, axis=0)
+                robot0_gripper_qpos = np.concatenate([padding, robot0_gripper_qpos], axis=0)
 
             left_image = np.stack([self.convert_frame(frame=frame, size=(round(self.frame_width/self.aug['crop']),round(self.frame_height/self.aug['crop'])), swap_rgb=self.swap_rgb) for frame in left_image])
             right_image = np.stack([self.convert_frame(frame=frame, size=(round(self.frame_width/self.aug['crop']),round(self.frame_height/self.aug['crop'])), swap_rgb=self.swap_rgb) for frame in right_image])
@@ -394,9 +405,10 @@ class InMemoryVideoDataset(Dataset):
         left_image = torch.tensor(left_image, dtype=torch.float32)
         right_image = torch.tensor(right_image, dtype=torch.float32)
         gripper_image = torch.tensor(gripper_image, dtype=torch.float32)
+        robot0_eef_pos = torch.tensor(robot0_eef_pos, dtype=torch.float32)
+        robot0_eef_quat = torch.tensor(robot0_eef_quat, dtype=torch.float32)
+        robot0_gripper_qpos = torch.tensor(robot0_gripper_qpos, dtype=torch.float32)
         relative_actions_abs_normalized = torch.tensor(relative_actions_abs_normalized, dtype=torch.float32)
-        joint_pos = torch.tensor(joint_pos, dtype=torch.float32)
-        gripper_pos = torch.tensor(gripper_pos, dtype=torch.float32)
 
         # Rescale from [-1, 1] to [0, 1] for transforms
         left_image = (left_image + 1) / 2
@@ -411,18 +423,16 @@ class InMemoryVideoDataset(Dataset):
         # left_image = left_image * 2 - 1
         # right_image = right_image * 2 - 1
         # gripper_image = gripper_image * 2 - 1
-        # print("joint_pos shape:", joint_pos.shape)
-        # print("gripper_pos shape:", gripper_pos.shape)
-        # pdb.set_trace()
+
         return {
             "obs": {
                 "task_description": clip_embedding,
                 "left_image": left_image,
                 "right_image": right_image,
                 "gripper_image": gripper_image,
-                "joint_pos": joint_pos,
-                "gripper_pos": gripper_pos,
-
+                "robot0_eef_pos": robot0_eef_pos,
+                "robot0_eef_quat": robot0_eef_quat,
+                "robot0_gripper_qpos": robot0_gripper_qpos,
             },
             "action": relative_actions_abs_normalized,
         }
