@@ -831,7 +831,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
             # initial_state = environment_data['demos'][demo]['initial_state']
             # self.reset_to(env, initial_state)
 
-            env.reset()
+            obs = env.reset()
 
             task_description = env.get_ep_meta()["lang"]
             task_description = open_clip.tokenize([task_description]) # returns torch.Size([1, 77])
@@ -884,6 +884,10 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
 
                 batch = self.convert_observations(self.dataset, left_image_queue, right_image_queue, gripper_image_queue, clip_embedding)
                 batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
+                batch['robot0_eef_pos'] = torch.tensor(obs['robot0_eef_pos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+                batch['robot0_eef_quat'] = torch.tensor(obs['robot0_eef_quat']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+                batch['robot0_gripper_qpos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+
 
                 action_pred, action_pred_infos_result = self.policy.predict_action_with_infos(batch)
                 action_pred = ((action_pred.detach().cpu().numpy() + 1) / 2) * (self.dataset.max - self.dataset.min) + self.dataset.min
