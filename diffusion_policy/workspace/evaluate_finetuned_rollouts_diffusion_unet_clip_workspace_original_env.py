@@ -761,8 +761,9 @@ class EvalRolloutsDiffusionUnetImageWorkspace(BaseWorkspace):
             batch = self.convert_observations(self.dataset, left_image_queue, right_image_queue, gripper_image_queue, clip_embedding)
             batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
             # pdb.set_trace()
-            batch['joint_pos'] = torch.tensor(obs['robot0_joint_pos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
-            batch['gripper_pos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+            batch['robot0_eef_pos'] = torch.tensor(obs['robot0_eef_pos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+            batch['robot0_eef_quat'] = torch.tensor(obs['robot0_eef_quat']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+            batch['robot0_gripper_qpos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
             # joint_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_joint_pos'][indexed_start:end:self.stride]
             # gripper_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start:end:self.stride]
 
