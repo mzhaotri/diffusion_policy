@@ -745,7 +745,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         list_of_success_at_times = []
 
         # reset the environment
-        env.reset()
+        obs = env.reset()
         zero_action = np.zeros(env.action_dim)
         env.step(zero_action)
 
@@ -783,7 +783,11 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
                 gripper_image_queue.append(video_img[2])
 
             batch = self.convert_observations(self.dataset, left_image_queue, right_image_queue, gripper_image_queue, clip_embedding)
+            
             batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
+            batch['robot0_eef_pos'] = torch.tensor(obs['robot0_eef_pos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+            batch['robot0_eef_quat'] = torch.tensor(obs['robot0_eef_quat']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+            batch['robot0_gripper_qpos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
 
             
             # task_description torch.Size([1, 1, 1024])
@@ -833,7 +837,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
             list_of_success_at_times.append(is_success)
             print("LOGPZO: baseline_metric:", baseline_metric)
             list_of_logpZO_scores.append(baseline_metric)
-            list_of_img_observations.append([batch['left_image'], batch['right_image'], batch['gripper_image']])
+            list_of_img_observations.append(batch)
             list_of_obs_embeddings.append(action_pred_infos_result['global_cond'])
             list_of_action_predictions.append(action_pred)
             # list_of_rewards.append(env._get_reward())
@@ -1012,10 +1016,11 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
                     gripper_image_queue.append(video_img[2])
 
                 batch = self.convert_observations(self.dataset, left_image_queue, right_image_queue, gripper_image_queue, clip_embedding)
-                batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
+                
                 batch['robot0_eef_pos'] = torch.tensor(obs['robot0_eef_pos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
                 batch['robot0_eef_quat'] = torch.tensor(obs['robot0_eef_quat']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
                 batch['robot0_gripper_qpos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+                batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
 
                 action_pred, action_pred_infos_result = self.policy.predict_action_with_infos(batch)
                 action_pred = ((action_pred.detach().cpu().numpy() + 1) / 2) * (self.dataset.max - self.dataset.min) + self.dataset.min

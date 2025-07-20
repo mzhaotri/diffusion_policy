@@ -930,7 +930,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
                 list_of_success_at_times.append(is_success)
                 print("LOGPZO: baseline_metric:", baseline_metric)
                 list_of_logpZO_scores.append(baseline_metric)
-                list_of_img_observations.append([batch['left_image'], batch['right_image'], batch['gripper_image']])
+                list_of_img_observations.append(batch)
                 list_of_obs_embeddings.append(action_pred_infos_result['global_cond'])
                 list_of_action_predictions.append(action_pred)
                 # list_of_rewards.append(env._get_reward())
