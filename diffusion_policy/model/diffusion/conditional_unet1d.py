@@ -212,6 +212,7 @@ class ConditionalUnet1D(nn.Module):
         
         x = sample
         h = []
+        # import pdb; pdb.set_trace()
         for idx, (resnet, resnet2, downsample) in enumerate(self.down_modules):
             x = resnet(x, global_feature)
             if idx == 0 and len(h_local) > 0:

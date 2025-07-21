@@ -43,7 +43,10 @@ class DiffusionUnetTimmPolicy(BaseImagePolicy):
         action_dim = action_shape[0]
         action_horizon = shape_meta['action']['horizon']
         # get feature dim
+        # pdb.set_trace()
         obs_feature_dim = np.prod(obs_encoder.output_shape())
+        print(f"obs_feature_dim: {obs_feature_dim}")
+        # obs_feature_dim = 5769
 
 
         # create diffusion model

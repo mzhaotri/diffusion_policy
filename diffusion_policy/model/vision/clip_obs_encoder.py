@@ -259,6 +259,7 @@ class TimmObsEncoder(ModuleAttrMixin):
     def forward(self, obs_dict):
         features = list()
         batch_size = next(iter(obs_dict.values())).shape[0]
+        # import pdb; pdb.set_trace()
         
         # process rgb input
         for key in self.rgb_keys:

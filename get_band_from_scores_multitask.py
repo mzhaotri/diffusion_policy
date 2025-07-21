@@ -160,8 +160,8 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     """
     
 
-    num_te = 25 # these are heldout for testing and evaluating failure detection
-    max_tr = 25 # these are used in CP construction
+    num_te = 15 # these are heldout for testing and evaluating failure detection
+    max_tr = 35 # these are used in CP construction
 
     # the training rollouts are further split in D_calibA (of size num_train), and D_calibB (of size num_cal)
     num_train = int(max_tr/2)
@@ -463,7 +463,7 @@ def main():
     experiment_name = args.experiment_name
     experiment_tag = args.experiment_tag
     policy_type = 'diffusion'
-    data_folder = f'data/outputs/{experiment_tag}_{experiment_name}_{task_name}/compute_rollout_scores'
+    data_folder = f'data/outputs/{experiment_tag}_{experiment_name}_{task_name}/compute_rollout_scores_16'
     successes = []
     all_log_probs = []
     all_images = []
@@ -531,9 +531,9 @@ def main():
     ax.set_title('All Trajectories', fontsize=fsize)
     plt.show()
 
-    randomized_indices = np.random.permutation(len(log_probs))
-    log_probs = log_probs[randomized_indices]
-    successes = successes[randomized_indices]
+    # randomized_indices = np.random.permutation(len(log_probs))
+    # log_probs = log_probs[randomized_indices]
+    # successes = successes[randomized_indices]
     # all_images = all_images[randomized_indices]
     
 

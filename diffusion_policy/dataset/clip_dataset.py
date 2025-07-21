@@ -117,7 +117,8 @@ class InMemoryVideoDataset(Dataset):
         sample_fps: float,
         video_fps: float,
         pred_horizon: int,
-        obs_horizon: int,
+        img_obs_horizon: int,
+        low_dim_obs_horizon: int,
         validation_split: int,
         aug: dict,
         action_dim: int,
@@ -139,7 +140,8 @@ class InMemoryVideoDataset(Dataset):
         self.frame_height = frame_height
         self.stride = round(video_fps / sample_fps)
         self.pred_horizon = pred_horizon
-        self.obs_horizon = obs_horizon
+        self.img_obs_horizon = img_obs_horizon
+        self.low_dim_obs_horizon = low_dim_obs_horizon
         self.action_dim = action_dim
         self.swap_rgb = swap_rgb
         self.aug = aug
@@ -294,6 +296,7 @@ class InMemoryVideoDataset(Dataset):
         cv2.imwrite(output_filename, frame)
 
     def convert_frame(self, frame, size=None, swap_rgb=False):
+        # print("Converting frame with shape:", frame.shape)
         if size is not None:
             original_height, original_width = frame.shape[:2]
             target_width, target_height = size
@@ -332,7 +335,12 @@ class InMemoryVideoDataset(Dataset):
         seed = random.randint(0, 2**32)
         for frame in images:
             torch.manual_seed(seed)
-            transformed_images.append(transform(frame))
+            
+            try:
+                transformed_images.append(transform(frame))
+            except Exception as e:
+                print("frame shape:", frame.shape)
+                print(f"Error occurred while transforming frame: {e}")
         images = torch.stack(transformed_images)
 
         return images
@@ -346,52 +354,71 @@ class InMemoryVideoDataset(Dataset):
             task_name, task_index, demo_key, demo_step, clip_embedding = self.indexed_demos[i]
             # relative_actions_abs = self.datasets[task_index]['data'][demo_key]['relative_actions_abs'][demo_step:demo_step+self.pred_horizon*self.stride:self.stride]
             relative_actions_abs = self.hdf5_datasets[task_index]['data'][demo_key]['actions'][demo_step:demo_step+self.pred_horizon*self.stride:self.stride][:, 0:self.action_dim]
-            
+            # pdb.set_trace()
+            # print("self.pred_horizon", self.pred_horizon)
             pad_size = self.pred_horizon - relative_actions_abs.shape[0]
+            # print("pad_size", pad_size)
 
             if pad_size > 0:
                 relative_actions_abs = np.concatenate([relative_actions_abs, np.zeros((pad_size, self.action_dim))], axis=0)
             
             relative_actions_abs_normalized = 2 * ((relative_actions_abs - self.min) / (self.max - self.min)) - 1
 
-            start = demo_step-(self.obs_horizon-1)*self.stride
-            indexed_start = max(start, 0)
+            start_img = demo_step-(self.img_obs_horizon-1)*self.stride
+            start_low_dim = demo_step-(self.low_dim_obs_horizon-1)*self.stride
+            indexed_start_img = max(start_img, 0)
+            indexed_start_low_dim = max(start_low_dim, 0)
             end = demo_step+1
 
-            left_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_left_image'][indexed_start:end:self.stride]
-            right_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_right_image'][indexed_start:end:self.stride]
-            gripper_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eye_in_hand_image'][indexed_start:end:self.stride]
-            robot0_eef_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eef_pos'][indexed_start:end:self.stride]
-            robot0_eef_quat = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eef_quat'][indexed_start:end:self.stride]
-            robot0_gripper_qpos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start:end:self.stride]
+            left_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_left_image'][indexed_start_img:end:self.stride]
+            right_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_agentview_right_image'][indexed_start_img:end:self.stride]
+            gripper_image = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eye_in_hand_image'][indexed_start_img:end:self.stride]
+            robot0_eef_pos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eef_pos'][indexed_start_low_dim:end:self.stride]
+            robot0_eef_quat = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_eef_quat'][indexed_start_low_dim:end:self.stride]
+            robot0_gripper_qpos = self.hdf5_datasets[task_index]['data'][demo_key]['obs']['robot0_gripper_qpos'][indexed_start_low_dim:end:self.stride]
 
-            # import pdb; pdb.set_trace()
+            # print("shapes")
+            # print("left_image", left_image.shape)
+            # print("right_image", right_image.shape)
+            # print("gripper_image", gripper_image.shape)
+            # print("robot0_eef_pos", robot0_eef_pos.shape)
+            # print("robot0_eef_quat", robot0_eef_quat.shape)
+            # print("robot0_gripper_qpos", robot0_gripper_qpos.shape)
+#             left_image (2, 256, 256, 3)
+            # right_image (2, 256, 256, 3)
+            # gripper_image (2, 256, 256, 3)
+            # robot0_eef_pos (1, 3)
+            # robot0_eef_quat (1, 4)
+            # robot0_gripper_qpos (1, 2)
 
-            pad_size = self.obs_horizon - left_image.shape[0]
-            if pad_size > 0:
+
+            img_pad_size = self.img_obs_horizon - left_image.shape[0]
+            low_dim_pad_size = self.low_dim_obs_horizon - robot0_eef_pos.shape[0]
+            if img_pad_size > 0:
                 first_element = np.expand_dims(left_image[0], axis=0)
-                padding = np.concatenate([first_element] * pad_size, axis=0)
+                padding = np.concatenate([first_element] * img_pad_size, axis=0)
                 left_image = np.concatenate([padding, left_image], axis=0)
 
                 first_element = np.expand_dims(right_image[0], axis=0)
-                padding = np.concatenate([first_element] * pad_size, axis=0)
+                padding = np.concatenate([first_element] * img_pad_size, axis=0)
                 right_image = np.concatenate([padding, right_image], axis=0)
 
                 first_element = np.expand_dims(gripper_image[0], axis=0)
-                padding = np.concatenate([first_element] * pad_size, axis=0)
+                padding = np.concatenate([first_element] * img_pad_size, axis=0)
                 gripper_image = np.concatenate([padding, gripper_image], axis=0)
 
+            if low_dim_pad_size > 0:
                 # pad the joint positions and gripper positions
                 first_element = np.expand_dims(robot0_eef_pos[0], axis=0)
-                padding = np.concatenate([first_element] * pad_size, axis=0)
+                padding = np.concatenate([first_element] * low_dim_pad_size, axis=0)
                 robot0_eef_pos = np.concatenate([padding, robot0_eef_pos], axis=0)
 
                 first_element = np.expand_dims(robot0_eef_quat[0], axis=0)
-                padding = np.concatenate([first_element] * pad_size, axis=0)
+                padding = np.concatenate([first_element] * low_dim_pad_size, axis=0)
                 robot0_eef_quat = np.concatenate([padding, robot0_eef_quat], axis=0)
 
                 first_element = np.expand_dims(robot0_gripper_qpos[0], axis=0)
-                padding = np.concatenate([first_element] * pad_size, axis=0)
+                padding = np.concatenate([first_element] * low_dim_pad_size, axis=0)
                 robot0_gripper_qpos = np.concatenate([padding, robot0_gripper_qpos], axis=0)
 
             left_image = np.stack([self.convert_frame(frame=frame, size=(round(self.frame_width/self.aug['crop']),round(self.frame_height/self.aug['crop'])), swap_rgb=self.swap_rgb) for frame in left_image])
@@ -414,6 +441,8 @@ class InMemoryVideoDataset(Dataset):
         left_image = (left_image + 1) / 2
         right_image = (right_image + 1) / 2
         gripper_image = (gripper_image + 1) / 2
+
+        # print("left_image shape:", left_image.shape)
 
         left_image = self.augmentation_transform(left_image, self.transform_rgb)
         right_image = self.augmentation_transform(right_image, self.transform_rgb)
