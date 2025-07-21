@@ -53,7 +53,9 @@ TASK_NAME_TO_HUMAN_PATH = {'PnPCabToCounter': "../robocasa/datasets_first/v0.1/s
                             # 'CoffeeServeMug': "/home/michellezhao/Downloads/myoriginal50.hdf5",
                             'TurnOnMicrowave': "../robocasa/datasets_first/v0.1/single_stage/kitchen_microwave/TurnOnMicrowave/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
                             'CloseSingleDoor': "../robocasa/datasets_first/v0.1/single_stage/kitchen_doors/CloseSingleDoor/2024-04-24/demo_gentex_im128_randcams_im256.hdf5",
+                            "CloseDoubleDoor": "../robocasa/datasets_first/v0.1/single_stage/kitchen_doors/CloseDoubleDoor/2024-04-29/demo_gentex_im128_randcams_im256.hdf5"
                            }
+
 
 TASK_NAME_TO_DAGGER_PATH = {
                             'CoffeeServeMug': "data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CoffeeServeMug/dagger_episode_0/processed_dagger_data/merged_dagger_data.hdf5",
