@@ -861,6 +861,9 @@ class DAggerRobocasaImageRunner(BaseImageRunner):
         # print("entered predict_robot_action")
         batch = self.convert_observations(self.video_dataset, obs, clip_embedding)
         batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
+        batch['robot0_eef_pos'] = torch.tensor(obs['robot0_eef_pos']).unsqueeze(0).to(self.device, dtype=torch.float32)
+        batch['robot0_eef_quat'] = torch.tensor(obs['robot0_eef_quat']).unsqueeze(0).to(self.device, dtype=torch.float32)
+        batch['robot0_gripper_qpos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).to(self.device, dtype=torch.float32)
 
         action_pred, action_pred_infos_result = self.policy.predict_action_with_infos(batch)
         action_pred = ((action_pred.detach().cpu().numpy() + 1) / 2) * (self.video_dataset.max - self.video_dataset.min) + self.video_dataset.min
@@ -1141,6 +1144,9 @@ class DAggerRobocasaImageRunner(BaseImageRunner):
                     # print("current_gripper_qpos", current_gripper_qpos)
                     batch = self.convert_observations(self.video_dataset, obs, clip_embedding)
                     batch = {key: value.to(self.device, dtype=torch.float32) for key, value in batch.items()}
+                    batch['robot0_eef_pos'] = torch.tensor(obs['robot0_eef_pos']).unsqueeze(0).to(self.device, dtype=torch.float32)
+                    batch['robot0_eef_quat'] = torch.tensor(obs['robot0_eef_quat']).unsqueeze(0).to(self.device, dtype=torch.float32)
+                    batch['robot0_gripper_qpos'] = torch.tensor(obs['robot0_gripper_qpos']).unsqueeze(0).to(self.device, dtype=torch.float32)
 
                     action_pred, action_pred_infos_result = self.policy.predict_action_with_infos(batch)
                     action_pred = ((action_pred.detach().cpu().numpy() + 1) / 2) * (self.video_dataset.max - self.video_dataset.min) + self.video_dataset.min

@@ -160,8 +160,8 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     """
     
 
-    num_te = 25 # these are heldout for testing and evaluating failure detection
-    max_tr = 25 # these are used in CP construction
+    num_te = 15 # these are heldout for testing and evaluating failure detection
+    max_tr = 35 # these are used in CP construction
 
     # the training rollouts are further split in D_calibA (of size num_train), and D_calibB (of size num_cal)
     num_train = int(max_tr/2)
@@ -321,15 +321,15 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
             print("high value", global_indices_of_test[test_idx])
         else:
             print("low value", global_indices_of_test[test_idx])
-        observation_frames = img_frames[global_indices_of_test[test_idx]]
+        # observation_frames = img_frames[global_indices_of_test[test_idx]]
         
         CP_upper_band = target_traj
         for t in range(len(log_prob_test_scores)):
             if log_prob_test_scores[t] > CP_upper_band[t]:
-                if t < len(observation_frames):
-                    img= observation_frames[t]
-                else:
-                    img = observation_frames[-1]
+                # if t < len(observation_frames):
+                #     img= observation_frames[t]
+                # else:
+                #     img = observation_frames[-1]
                 # pdb.set_trace()
                 
                 if success == 0: # if failed, then correct detection
@@ -487,29 +487,33 @@ def main():
                 scores_filtered.append(scores[i])
             scores = scores_filtered
 
-            img_frames = []
-            for t in range(len(scores)):
-                leftcam, rightcam, grippercam = img_obs[t]
-                leftcam = leftcam[0,0,:].detach().cpu().numpy()
-                rightcam = rightcam[0,0,:].detach().cpu().numpy()
-                grippercam = grippercam[0,0,:].detach().cpu().numpy()
+            # img_frames = []
+            # for t in range(len(scores)):
+            #     leftcam, rightcam, grippercam = img_obs[t]
+            #     leftcam = leftcam[0,0,:].detach().cpu().numpy()
+            #     rightcam = rightcam[0,0,:].detach().cpu().numpy()
+            #     grippercam = grippercam[0,0,:].detach().cpu().numpy()
 
-                leftcam = np.rot90(np.swapaxes(leftcam, 0, -1), -1)
-                rightcam = np.rot90(np.swapaxes(rightcam, 0, -1), -1)
-                grippercam = np.rot90(np.swapaxes(grippercam, 0, -1), -1)
+            #     leftcam = np.rot90(np.swapaxes(leftcam, 0, -1), -1)
+            #     rightcam = np.rot90(np.swapaxes(rightcam, 0, -1), -1)
+            #     grippercam = np.rot90(np.swapaxes(grippercam, 0, -1), -1)
 
-                combined = np.concatenate([leftcam, rightcam, grippercam], axis=1)
-                img_frames.append(combined)
+            #     combined = np.concatenate([leftcam, rightcam, grippercam], axis=1)
+            #     img_frames.append(combined)
 
             all_log_probs.append(scores)
             successes.append(success)
-            all_images.append(img_frames)
+            # all_images.append(img_frames)
 
     max_length = max(len(lp) for lp in all_log_probs)
     padded_log_probs = [lp + [lp[-1]] * (max_length - len(lp)) for lp in all_log_probs]
     log_probs = np.array(padded_log_probs)
     successes = np.array(successes)
     print("success rate = ", np.mean(successes))
+
+    randomized_indices = np.random.permutation(len(log_probs))
+    log_probs = log_probs[randomized_indices]
+    successes = successes[randomized_indices]
     
 
     print("log_probs shape:", log_probs.shape)
