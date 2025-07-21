@@ -183,13 +183,13 @@ def create_eval_env_modified(
         use_object_obs=True,
         use_camera_obs=True,
         camera_depths=False,
-        seed=seed,
+        # seed=seed,
         # renderer = 'mjviewer',
         # render_camera="robot0_agentview_left",
         obj_instance_split=obj_instance_split,
         generative_textures=generative_textures,
         randomize_cameras=randomize_cameras,
-        layout_and_style_ids=layout_and_style_ids,
+        # layout_and_style_ids=layout_and_style_ids,
         translucent_robot=False,
     )
     
@@ -222,7 +222,7 @@ def create_eval_env_modified_old(
 ):
     # controller_configs = load_controller_config(default_controller=controllers)   # somehow this line doesn't work for me
 
-    layout_and_style_ids = (layout_and_style_ids[id_selection],)
+    # layout_and_style_ids = (layout_and_style_ids[id_selection],)
 
     env_kwargs = dict(
         env_name=env_name,
@@ -693,6 +693,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         camera_width = round(self.payload_cfg.task.dataset['frame_width']/self.payload_cfg.task.dataset['aug']['crop'])
         pred_horizon = self.payload_cfg.task['action_horizon']
         action_horizon = self.cfg['execution_horizon']
+        action_horizon = 8
 
         environment_data['env_kwargs']['has_renderer'] = True
         environment_data['env_kwargs']["renderer"] = "mjviewer"

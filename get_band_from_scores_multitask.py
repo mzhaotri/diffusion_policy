@@ -160,8 +160,8 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     """
     
 
-    num_te = 10 # these are heldout for testing and evaluating failure detection
-    max_tr = 40 # these are used in CP construction
+    num_te = 25 # these are heldout for testing and evaluating failure detection
+    max_tr = 25 # these are used in CP construction
 
     # the training rollouts are further split in D_calibA (of size num_train), and D_calibB (of size num_cal)
     num_train = int(max_tr/2)
@@ -175,6 +175,8 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     # these are heldout for testing 
     log_probs_test = log_probs[max_tr:max_tr+num_te]
     successes_test = successes[max_tr:max_tr+num_te]
+
+    # pdb.set_trace()
 
     global_indices_of_train = np.arange(len(log_probs_train))
     global_indices_of_test = np.arange(len(log_probs_test)) + len(log_probs_train)
@@ -512,14 +514,7 @@ def main():
             all_images.append(img_frames)
 
     # plot scores, coloreded by success/failure
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
-    for i in range(len(all_log_probs)):
-        log_prob = all_log_probs[i]
-        color = 'blue' if successes[i] == 1 else 'red'
-        label = 'Success' if successes[i] == 1 else 'Failure'
-        ax.plot(np.arange(len(log_prob)), log_prob, color=color, label=label, alpha=0.4)
-    ax.set_title('All Trajectories', fontsize=fsize)
-    plt.show()
+    
 
     max_length = max(len(lp) for lp in all_log_probs)
     padded_log_probs = [lp + [lp[-1]] * (max_length - len(lp)) for lp in all_log_probs]
@@ -527,9 +522,19 @@ def main():
     successes = np.array(successes)
     print("success rate = ", np.mean(successes))
 
-    # randomized_indices = np.random.permutation(len(log_probs))
-    # log_probs = log_probs[randomized_indices]
-    # successes = successes[randomized_indices]
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
+    for i in range(len(log_probs)):
+        log_prob = log_probs[i]
+        color = 'blue' if successes[i] == 1 else 'red'
+        label = 'Success' if successes[i] == 1 else 'Failure'
+        ax.plot(np.arange(len(log_prob)), log_prob, color=color, label=label, alpha=0.4)
+    ax.set_title('All Trajectories', fontsize=fsize)
+    plt.show()
+
+    randomized_indices = np.random.permutation(len(log_probs))
+    log_probs = log_probs[randomized_indices]
+    successes = successes[randomized_indices]
+    # all_images = all_images[randomized_indices]
     
 
     print("log_probs shape:", log_probs.shape)
