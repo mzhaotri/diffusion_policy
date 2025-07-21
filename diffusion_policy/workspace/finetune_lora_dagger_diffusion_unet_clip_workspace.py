@@ -44,38 +44,47 @@ import time
 
 
 
-def get_finetuning_dataset(taskname, dagger_episode_folder='dagger_episode_0'):
+def get_finetuning_dataset(taskname, experiment_tag, dagger_episode_folder='dagger_episode_0'):
     TASK_NAME_TO_ORIGINAL_PATH = {'PnPCabToCounter': "../robocasa/datasets_first/v0.1/single_stage/kitchen_pnp/PnPCabToCounter/2024-04-24/demo_gentex_im128_randcams_im256.hdf5",
-                            'PnPSinkToCounter': "../robocasa/datasets_first/v0.1/single_stage/kitchen_pnp/PnPSinkToCounter/2024-04-26_2/demo_gentex_im128_randcams_im256.hdf5",
-                            'OpenSingleDoor': "../robocasa/datasets_first/v0.1/single_stage/kitchen_doors/OpenSingleDoor/2024-04-24/demo_gentex_im128_randcams_im256.hdf5",
-                            'OpenDrawer': "../robocasa/datasets_first/v0.1/single_stage/kitchen_drawer/OpenDrawer/2024-05-03/demo_gentex_im128_randcams_im256.hdf5",
-                            'CloseDrawer': "../robocasa/datasets_first/v0.1/single_stage/kitchen_drawer/CloseDrawer/2024-04-30/demo_gentex_im128_randcams_im256.hdf5",
-                            'TurnOnStove': "../robocasa/datasets_first/v0.1/single_stage/kitchen_stove/TurnOnStove/2024-05-02/demo_gentex_im128_randcams_im256.hdf5",
-                            'TurnOnSinkFaucet': "../robocasa/datasets_first/v0.1/single_stage/kitchen_sink/TurnOnSinkFaucet/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
-                            'CoffeePressButton': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeePressButton/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
-                                'CoffeeServeMug': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeeServeMug/2024-05-01/demo_gentex_im128_randcams_im256.hdf5",
+                           'PnPSinkToCounter': "../robocasa/datasets_first/v0.1/single_stage/kitchen_pnp/PnPSinkToCounter/2024-04-26_2/demo_gentex_im128_randcams_im256.hdf5",
+                           'OpenSingleDoor': "../robocasa/datasets_first/v0.1/single_stage/kitchen_doors/OpenSingleDoor/2024-04-24/demo_gentex_im128_randcams_im256.hdf5",
+                           'OpenDrawer': "../robocasa/datasets_first/v0.1/single_stage/kitchen_drawer/OpenDrawer/2024-05-03/demo_gentex_im128_randcams_im256.hdf5",
+                           'CloseDrawer': "../robocasa/datasets_first/v0.1/single_stage/kitchen_drawer/CloseDrawer/2024-04-30/demo_gentex_im128_randcams_im256.hdf5",
+                           'TurnOnStove': "../robocasa/datasets_first/v0.1/single_stage/kitchen_stove/TurnOnStove/2024-05-02/demo_gentex_im128_randcams_im256.hdf5",
+                           'TurnOnSinkFaucet': "../robocasa/datasets_first/v0.1/single_stage/kitchen_sink/TurnOnSinkFaucet/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
+                           'CoffeePressButton': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeePressButton/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
+                            'CoffeeServeMug': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeeServeMug/2024-05-01/demo_gentex_im128_randcams_im256.hdf5",
+                            'TurnOnMicrowave': "../robocasa/datasets_first/v0.1/single_stage/kitchen_microwave/TurnOnMicrowave/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
+                            'CloseSingleDoor': "../robocasa/datasets_first/v0.1/single_stage/kitchen_doors/CloseSingleDoor/2024-04-24/demo_gentex_im128_randcams_im256.hdf5",
+                            "PnPStoveToCounter": "../robocasa/datasets_first/v0.1/single_stage/kitchen_pnp/PnPStoveToCounter/2024-05-01/demo_gentex_im128_randcams_im256.hdf5"
+                           }
+
+    TASK_NAME_TO_MERGED_PATH = {'PnPCabToCounter': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_PnPCabToCounter/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'PnPSinkToCounter': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_PnPSinkToCounter/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'OpenSingleDoor': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_OpenSingleDoor/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'OpenDrawer': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_OpenDrawer/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'CloseDrawer': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CloseDrawer/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'TurnOnStove': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_TurnOnStove/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'TurnOnSinkFaucet': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_TurnOnSinkFaucet/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'CoffeePressButton': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CoffeePressButton/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'CoffeeServeMug': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CoffeeServeMug/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'TurnOnMicrowave': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_TurnOnMicrowave/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            'CloseSingleDoor': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CloseSingleDoor/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
+                            "PnPStoveToCounter": f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_PnPStoveToCounter/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5'
                             }
 
-    TASK_NAME_TO_MERGED_PATH = {'PnPCabToCounter': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_PnPCabToCounter/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            'PnPSinkToCounter': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_PnPSinkToCounter/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            'OpenSingleDoor': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_OpenSingleDoor/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            'OpenDrawer': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_OpenDrawer/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            'CloseDrawer': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CloseDrawer/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            'TurnOnStove': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_TurnOnStove/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            'TurnOnSinkFaucet': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_TurnOnSinkFaucet/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            'CoffeePressButton': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CoffeePressButton/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                                'CoffeeServeMug': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CoffeeServeMug/{dagger_episode_folder}/processed_dagger_data/merged_dagger_data.hdf5',
-                            }
-
-    TASK_NAME_TO_HUMAN_ONLY_PATH = {'PnPCabToCounter': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_PnPCabToCounter/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                            'PnPSinkToCounter': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_PnPSinkToCounter/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                            'OpenSingleDoor': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_OpenSingleDoor/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                            'OpenDrawer': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_OpenDrawer/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                            'CloseDrawer': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CloseDrawer/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                            'TurnOnStove': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_TurnOnStove/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                            'TurnOnSinkFaucet': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_TurnOnSinkFaucet/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                            'CoffeePressButton': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CoffeePressButton/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
-                                'CoffeeServeMug': f'data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CoffeeServeMug/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+    TASK_NAME_TO_HUMAN_ONLY_PATH = {'PnPCabToCounter': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_PnPCabToCounter/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'PnPSinkToCounter': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_PnPSinkToCounter/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'OpenSingleDoor': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_OpenSingleDoor/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'OpenDrawer': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_OpenDrawer/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'CloseDrawer': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CloseDrawer/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'TurnOnStove': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_TurnOnStove/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'TurnOnSinkFaucet': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_TurnOnSinkFaucet/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'CoffeePressButton': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CoffeePressButton/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                                'CoffeeServeMug': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CoffeeServeMug/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'TurnOnMicrowave': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_TurnOnMicrowave/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            'CloseSingleDoor': f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_CloseSingleDoor/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5',
+                            "PnPStoveToCounter": f'data/outputs/{experiment_tag}_train_diffusion_unet_clip_PnPStoveToCounter/{dagger_episode_folder}/processed_dagger_data/human_only_demo.hdf5'
                             }
     
     original_dataset = TASK_NAME_TO_ORIGINAL_PATH[taskname]
@@ -83,6 +92,7 @@ def get_finetuning_dataset(taskname, dagger_episode_folder='dagger_episode_0'):
     human_only_dataset = TASK_NAME_TO_HUMAN_ONLY_PATH[taskname]
 
     return original_dataset, merged_dataset, human_only_dataset
+
 
 
 
@@ -254,7 +264,7 @@ class TrainDiffusionUnetImageWorkspace(BaseWorkspace):
 
         dagger_episode_folder = cfg.finetuning.dagger_episode_folder
 
-        original_dataset, merged_dataset, human_only_dataset = get_finetuning_dataset(task_name, dagger_episode_folder)
+        original_dataset, merged_dataset, human_only_dataset = get_finetuning_dataset(task_name, cfg.experiment_tag, dagger_episode_folder)
         
         cfg.task.dataset.human_path = merged_dataset
         dataset = hydra.utils.instantiate(cfg.task.dataset)

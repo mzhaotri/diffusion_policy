@@ -160,8 +160,8 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     """
     
 
-    num_te = 15 # these are heldout for testing and evaluating failure detection
-    max_tr = 35 # these are used in CP construction
+    num_te = 10 # these are heldout for testing and evaluating failure detection
+    max_tr = 40 # these are used in CP construction
 
     # the training rollouts are further split in D_calibA (of size num_train), and D_calibB (of size num_cal)
     num_train = int(max_tr/2)
@@ -313,6 +313,7 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     num_FN = 0 # False Negatives (actual positives incorrectly identified as negative) 
     num_FP = 0 # False Positives (actual negatives incorrectly identified as positive)
     num_TN = 0 # True Negatives (correctly identified negative cases)
+    # pdb.set_trace()
     for test_idx in range(len(log_probs_test_plt)):
         log_prob_test_scores = log_probs_test_plt[test_idx]
         success = successes_test_plt[test_idx]
@@ -321,36 +322,40 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
             print("high value", global_indices_of_test[test_idx])
         else:
             print("low value", global_indices_of_test[test_idx])
-        # observation_frames = img_frames[global_indices_of_test[test_idx]]
+        observation_frames = img_frames[global_indices_of_test[test_idx]]
         
         CP_upper_band = target_traj
         for t in range(len(log_prob_test_scores)):
             if log_prob_test_scores[t] > CP_upper_band[t]:
-                # if t < len(observation_frames):
-                #     img= observation_frames[t]
-                # else:
-                #     img = observation_frames[-1]
+                if t < len(observation_frames):
+                    img= observation_frames[t]
+                else:
+                    img = observation_frames[-1]
                 # pdb.set_trace()
                 
                 if success == 0: # if failed, then correct detection
                     num_TP += 1
-                    # fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
-                    # plt.imshow(img)
-                    # plt.title("TRUE POSITIVE DETECTION", fontsize=fsize)
-                    # plt.show()
+                    fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
+                    print("TRUE POSITIVE AT index", global_indices_of_test[test_idx])
+                    plt.imshow(img)
+                    plt.title("TRUE POSITIVE DETECTION", fontsize=fsize)
+                    plt.show()
                 else:
                     num_FP += 1 # if successful demo, then false positive
-                    # fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
-                    # plt.imshow(img)
-                    # plt.title("FALSE POSITIVE DETECTION", fontsize=fsize)
-                    # plt.show()
+                    fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
+                    print("FALSE POSITIVE AT index", global_indices_of_test[test_idx])
+                    plt.imshow(img)
+                    plt.title("FALSE POSITIVE DETECTION", fontsize=fsize)
+                    plt.show()
                 break
 
             if t == len(log_prob_test_scores) - 1: # no detection made
                 if success == 1: # if successful, then correct detection
                     num_TN += 1
+                    print("TRUE NEGATIVE AT index", global_indices_of_test[test_idx])
                 else:
                     num_FN += 1
+                    print("FALSE NEGATIVE AT index", global_indices_of_test[test_idx])
     print(f'### Number of True Positives: {num_TP}')
     print(f'### Number of False Negatives: {num_FN}')
     print(f'### Number of False Positives: {num_FP}')
@@ -487,23 +492,34 @@ def main():
                 scores_filtered.append(scores[i])
             scores = scores_filtered
 
-            # img_frames = []
-            # for t in range(len(scores)):
-            #     leftcam, rightcam, grippercam = img_obs[t]
-            #     leftcam = leftcam[0,0,:].detach().cpu().numpy()
-            #     rightcam = rightcam[0,0,:].detach().cpu().numpy()
-            #     grippercam = grippercam[0,0,:].detach().cpu().numpy()
+            img_frames = []
+            for t in range(len(scores)):
+                # pdb.set_trace()
+                leftcam, rightcam, grippercam = img_obs[t]['left_image'], img_obs[t]['right_image'], img_obs[t]['gripper_image']
+                leftcam = leftcam[0,0,:].detach().cpu().numpy()
+                rightcam = rightcam[0,0,:].detach().cpu().numpy()
+                grippercam = grippercam[0,0,:].detach().cpu().numpy()
 
-            #     leftcam = np.rot90(np.swapaxes(leftcam, 0, -1), -1)
-            #     rightcam = np.rot90(np.swapaxes(rightcam, 0, -1), -1)
-            #     grippercam = np.rot90(np.swapaxes(grippercam, 0, -1), -1)
+                leftcam = np.rot90(np.swapaxes(leftcam, 0, -1), -1)
+                rightcam = np.rot90(np.swapaxes(rightcam, 0, -1), -1)
+                grippercam = np.rot90(np.swapaxes(grippercam, 0, -1), -1)
 
-            #     combined = np.concatenate([leftcam, rightcam, grippercam], axis=1)
-            #     img_frames.append(combined)
+                combined = np.concatenate([leftcam, rightcam, grippercam], axis=1)
+                img_frames.append(combined)
 
             all_log_probs.append(scores)
             successes.append(success)
-            # all_images.append(img_frames)
+            all_images.append(img_frames)
+
+    # plot scores, coloreded by success/failure
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
+    for i in range(len(all_log_probs)):
+        log_prob = all_log_probs[i]
+        color = 'blue' if successes[i] == 1 else 'red'
+        label = 'Success' if successes[i] == 1 else 'Failure'
+        ax.plot(np.arange(len(log_prob)), log_prob, color=color, label=label, alpha=0.4)
+    ax.set_title('All Trajectories', fontsize=fsize)
+    plt.show()
 
     max_length = max(len(lp) for lp in all_log_probs)
     padded_log_probs = [lp + [lp[-1]] * (max_length - len(lp)) for lp in all_log_probs]
@@ -511,9 +527,9 @@ def main():
     successes = np.array(successes)
     print("success rate = ", np.mean(successes))
 
-    randomized_indices = np.random.permutation(len(log_probs))
-    log_probs = log_probs[randomized_indices]
-    successes = successes[randomized_indices]
+    # randomized_indices = np.random.permutation(len(log_probs))
+    # log_probs = log_probs[randomized_indices]
+    # successes = successes[randomized_indices]
     
 
     print("log_probs shape:", log_probs.shape)
