@@ -1,0 +1,32 @@
+defaults:
+  - _self_
+  - task: train_clip
+
+task_name: train_diffusion_unet_clip_closedrawer
+name: train_diffusion_unet_clip
+_target_: diffusion_policy.workspace.train_ebm_detection_workspace.FailDetectWorkspace
+
+
+experiment_name: train_diffusion_unet_clip
+experiment_tag: ST_OOD_DAgger
+
+
+FD_task_name: ${task.name}
+FD_base_policy_ckpt_path: data/outputs_16/${experiment_tag}_${name}_${FD_task_name}/base_policy/checkpoints/latest.ckpt
+FD_save_obs_embeds_path: data/outputs_16/${experiment_tag}_${name}_${FD_task_name}/base_policy/obs_embeds.pt
+FD_save_score_network_path: data/outputs_16/${experiment_tag}_${name}_${FD_task_name}/base_policy/ebm_fd_score_network.ckpt
+
+
+# FD_base_policy_ckpt_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_example/checkpoints/epoch_250_step_33884.ckpt
+# FD_save_obs_embeds_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_example/checkpoints/obs_embeds.pt
+# FD_save_score_network_path: data/outputs/2025.06.04/train_diffusion_unet_clip_train_example/checkpoints/fd_score_network.ckpt
+
+
+hydra:
+  job:
+    override_dirname: ${name}
+  run:
+    dir: data/outputs_16/${experiment_tag}_${name}_${FD_task_name}/ebm_score_network
+  sweep:
+    dir: data/outputs_16/${experiment_tag}_${name}_${FD_task_name}/ebm_score_network
+    subdir: ${hydra.job.num}
