@@ -635,8 +635,8 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
 
 
     def run(self):
-        for i in range(0,50):
-            print(colored(f"Running experiment {i+1}/50", "green"))
+        for i in range(0,100):
+            print(colored(f"Running experiment {i+1}/100", "green"))
             self.run_single_idx(i)
 
     def run_single_idx(self, idx):
@@ -746,6 +746,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         list_of_action_predictions = []
         # list_of_rewards = []
         list_of_success_at_times = []
+        list_of_env_imgs = []
 
         # reset the environment
         obs = env.reset()
@@ -823,6 +824,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
                     video_img, axis=1
                 )  # concatenate horizontally
                 video_writer.append_data(video_img)
+                list_of_env_imgs.append(video_img)
                 # update the matplotlib window with the new images
                 # if i%10==0:
                 #     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
@@ -864,7 +866,8 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
                             "obs_embeddings": [],
                             "action_predictions": [],
                             # "rewards": [],
-                            "success_at_times": []  
+                            "success_at_times": [],
+                            "env_images": []
                         }
                     }
                 }
@@ -883,7 +886,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['action_predictions'] = list_of_action_predictions
         # fd_score_experiments_data['tasks'][task_name]['experiments'][demo]['rewards'] = list_of_rewards
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success_at_times'] = list_of_success_at_times
-
+        fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['env_images'] = list_of_env_imgs
         # dump to pickle with demo_idx 
         with open(f"{self.run_dir}/{task_name}_{demo_number}_fd_scores.pkl", "wb") as f:
             pickle.dump(fd_score_experiments_data, f)

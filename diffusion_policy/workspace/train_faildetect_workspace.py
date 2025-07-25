@@ -67,7 +67,7 @@ class FailDetectWorkspace(BaseWorkspace):
     def run(self):
         type = self.type
         X, Y = data_loader.get_data(self.fail_detect_data_path, type=type, adjust_shape=True, diffusion=self.is_diffusion)
-        global_cond_dim = X.shape[1]; input_dim = Y.reshape(Y.shape[0], 32, -1).shape[-1]
+        global_cond_dim = X.shape[1]; input_dim = Y.reshape(Y.shape[0], 16, -1).shape[-1]
 
         # pdb.set_trace()
 
@@ -102,7 +102,7 @@ class FailDetectWorkspace(BaseWorkspace):
                 'epoch': i+1,
                 'losses': losses
             }
-            # torch.save(ckpt, ckpt_file)
+            torch.save(ckpt, ckpt_file)
 
             net.train()
             loss_i = []

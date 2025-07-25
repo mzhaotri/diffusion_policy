@@ -3,7 +3,7 @@ name: PnPSinkToCounter
 
 img_obs_horizon: 2
 low_dim_obs_horizon: 1
-action_horizon: 16
+action_horizon: 32
 action_dim: 7
 ignore_proprioception: False
 
