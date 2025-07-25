@@ -183,7 +183,7 @@ def create_eval_env_modified(
         use_object_obs=True,
         use_camera_obs=True,
         camera_depths=False,
-        # seed=seed,
+        seed=seed,
         # renderer = 'mjviewer',
         # render_camera="robot0_agentview_left",
         obj_instance_split=obj_instance_split,
@@ -635,9 +635,20 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
 
 
     def run(self):
-        for i in range(0,50):
-            print(colored(f"Running experiment {i+1}/50", "green"))
-            self.run_single_idx(i)
+        num_successes = 0
+        num_failures = 0
+        total_num_rollouts = 0
+        while num_successes < 75:
+        # for i in range(0,100):
+            print(colored(f"Running rollout {total_num_rollouts + 1}", "green"))
+            print(colored(f"Current experiment: Total successes: {num_successes}, Total failures: {num_failures}", "blue"))
+            is_success = self.run_single_idx(total_num_rollouts)
+            total_num_rollouts += 1
+            if is_success == 1 or is_success == True:
+                num_successes += 1
+            else:
+                num_failures += 1
+            print(colored(f"New Total successes: {num_successes}, Total failures: {num_failures}", "blue"))
 
     def run_single_idx(self, idx):
         
@@ -693,7 +704,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         camera_width = round(self.payload_cfg.task.dataset['frame_width']/self.payload_cfg.task.dataset['aug']['crop'])
         pred_horizon = self.payload_cfg.task['action_horizon']
         action_horizon = self.cfg['execution_horizon']
-        action_horizon = 8
+        action_horizon = 16
 
         environment_data['env_kwargs']['has_renderer'] = True
         environment_data['env_kwargs']["renderer"] = "mjviewer"
@@ -746,6 +757,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         list_of_action_predictions = []
         # list_of_rewards = []
         list_of_success_at_times = []
+        list_of_env_imgs = []
 
         # reset the environment
         obs = env.reset()
@@ -819,9 +831,11 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
 
                 # concatenate the three camera images horizontally
                 video_img = [cam1, cam2, cam3]
+                
                 video_img = np.concatenate(
                     video_img, axis=1
                 )  # concatenate horizontally
+                list_of_env_imgs.append(video_img)
                 video_writer.append_data(video_img)
                 # update the matplotlib window with the new images
                 # if i%10==0:
@@ -863,6 +877,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
                             "img_observations": [],
                             "obs_embeddings": [],
                             "action_predictions": [],
+                            'env_images': [],
                             # "rewards": [],
                             "success_at_times": []  
                         }
@@ -883,6 +898,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['action_predictions'] = list_of_action_predictions
         # fd_score_experiments_data['tasks'][task_name]['experiments'][demo]['rewards'] = list_of_rewards
         fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['success_at_times'] = list_of_success_at_times
+        fd_score_experiments_data['tasks'][task_name]['experiments'][demo_number]['env_images'] = list_of_env_imgs
 
         # dump to pickle with demo_idx 
         with open(f"{self.run_dir}/{task_name}_{demo_number}_fd_scores.pkl", "wb") as f:
@@ -900,7 +916,7 @@ class EvalComputeFDScoresDiffusionUnetImageWorkspace(BaseWorkspace):
         # close renderer
         # env._renderer.close()
         env.close()
-        return 
+        return is_success
 
 
 

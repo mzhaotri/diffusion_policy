@@ -79,15 +79,15 @@ class FailDetectWorkspace(BaseWorkspace):
         
         # choice of model/method
         net = get_unet(input_dim).to(self.device)
-        EPOCHS = 300
+        EPOCHS = 200
         optimizer = torch.optim.Adam(net.parameters(), lr = 1e-4)
-        if os.path.exists(ckpt_file):
-            ckpt = torch.load(ckpt_file)
-            # import pdb; pdb.set_trace()
-            net.load_state_dict(ckpt['model'])
-            optimizer.load_state_dict(ckpt['optimizer'])
-            starting_epochs = ckpt['epoch']
-            losses = ckpt['losses']
+        # if os.path.exists(ckpt_file):
+        #     ckpt = torch.load(ckpt_file)
+        #     # import pdb; pdb.set_trace()
+        #     net.load_state_dict(ckpt['model'])
+        #     optimizer.load_state_dict(ckpt['optimizer'])
+        #     starting_epochs = ckpt['epoch']
+        #     losses = ckpt['losses']
         # else:
         starting_epochs = 0
         losses = []
@@ -102,7 +102,7 @@ class FailDetectWorkspace(BaseWorkspace):
                 'epoch': i+1,
                 'losses': losses
             }
-            # torch.save(ckpt, ckpt_file)
+            torch.save(ckpt, ckpt_file)
 
             net.train()
             loss_i = []

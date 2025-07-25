@@ -43,6 +43,7 @@ import asyncio
 import shutil
 import threading
 from pynput import keyboard
+from termcolor import colored
 # import cv2
 # import robocasa.utils.eval_utils as EvalUtils
 
@@ -85,13 +86,13 @@ def create_interactive_eval_env_modified(
         use_object_obs=True,
         use_camera_obs=True,
         camera_depths=False,
-        seed=seed,
+        # seed=seed,
         renderer = 'mjviewer',
         render_camera="robot0_agentview_left",
         obj_instance_split=obj_instance_split,
         generative_textures=generative_textures,
         randomize_cameras=randomize_cameras,
-        layout_and_style_ids=layout_and_style_ids,
+        # layout_and_style_ids=layout_and_style_ids,
         translucent_robot=False,
     )
     
@@ -957,6 +958,9 @@ class DAggerRobocasaImageRunner(BaseImageRunner):
 
             # pdb.set_trace() 
             task_description = env.env.env.env.get_ep_meta()["lang"]
+
+            # print language command in green
+            print(colored(f"TASK DESCRIPTION: {task_description}", "green"))
             task_description = open_clip.tokenize([task_description]) # returns torch.Size([1, 77])
             with torch.no_grad():
                 clip_embedding = self.video_dataset.lang_model(task_description.to(self.device)).cpu().unsqueeze(0) # returns torch.Size([1, 1, 1024])

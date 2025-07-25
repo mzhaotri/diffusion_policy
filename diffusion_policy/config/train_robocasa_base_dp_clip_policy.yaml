@@ -95,7 +95,7 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 48
+  batch_size: 36
   num_workers: 24
   shuffle: True
   pin_memory: True

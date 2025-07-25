@@ -50,8 +50,8 @@ TASK_NAME_TO_HUMAN_PATH = {'PnPCabToCounter': "../robocasa/datasets_first/v0.1/s
                            'CloseDrawer': "../robocasa/datasets_first/v0.1/single_stage/kitchen_drawer/CloseDrawer/2024-04-30/demo_gentex_im128_randcams_im256.hdf5",
                            'TurnOnStove': "../robocasa/datasets_first/v0.1/single_stage/kitchen_stove/TurnOnStove/2024-05-02/demo_gentex_im128_randcams_im256.hdf5",
                            'TurnOnSinkFaucet': "../robocasa/datasets_first/v0.1/single_stage/kitchen_sink/TurnOnSinkFaucet/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
-                        #    'CoffeePressButton': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeePressButton/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
-                        'CoffeePressButton': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeePressButton/2024-04-25/merged_original_human_only.hdf5",
+                           'CoffeePressButton': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeePressButton/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
+                        # 'CoffeePressButton': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeePressButton/2024-04-25/merged_original_human_only.hdf5",
                             'CoffeeServeMug': "../robocasa/datasets_first/v0.1/single_stage/kitchen_coffee/CoffeeServeMug/2024-05-01/demo_gentex_im128_randcams_im256.hdf5",
                             'TurnOnMicrowave': "../robocasa/datasets_first/v0.1/single_stage/kitchen_microwave/TurnOnMicrowave/2024-04-25/demo_gentex_im128_randcams_im256.hdf5",
                             'CloseSingleDoor': "../robocasa/datasets_first/v0.1/single_stage/kitchen_doors/CloseSingleDoor/2024-04-24/demo_gentex_im128_randcams_im256.hdf5",
@@ -130,11 +130,8 @@ class TrainDiffusionUnetImageWorkspace(BaseWorkspace):
         )
 
         # resume training
-        if cfg.training.resume:
-            lastest_ckpt_path = self.get_checkpoint_path()
-            if lastest_ckpt_path.is_file():
-                accelerator.print(f"Resuming from checkpoint {lastest_ckpt_path}")
-                self.load_checkpoint(path=lastest_ckpt_path)
+        # if cfg.training.resume:
+        
 
         # Read task name and configure human_path and tasks
         task_name = cfg.task.name
@@ -160,6 +157,30 @@ class TrainDiffusionUnetImageWorkspace(BaseWorkspace):
             # however huggingface diffusers steps it every batch
             last_epoch=self.global_step-1
         )
+
+        lastest_ckpt_path = '/home/michellezhao/robocasa_dagger/diffusion_policy/data/outputs/ST_OOD_DAgger_train_diffusion_unet_clip_CoffeePressButton/base_policy/checkpoints/epoch_200_step_35576.ckpt'
+        # create path from str
+        lastest_ckpt_path = pathlib.Path(lastest_ckpt_path)
+
+        if lastest_ckpt_path.is_file():
+            accelerator.print(f"Resuming from checkpoint {lastest_ckpt_path}")
+            self.load_checkpoint(path=lastest_ckpt_path)
+            obs_encorder_lr = cfg.optimizer.lr
+            obs_encorder_params = list()
+            for param in self.model.obs_encoder.parameters():
+                if param.requires_grad:
+                    obs_encorder_params.append(param)
+            print(f'obs_encorder params: {len(obs_encorder_params)}')
+            param_groups = [
+            {'params': self.model.model.parameters()},
+                {'params': obs_encorder_params, 'lr': obs_encorder_lr}
+            ]
+            optimizer_cfg = OmegaConf.to_container(cfg.optimizer, resolve=True)
+            optimizer_cfg.pop('_target_')
+            self.optimizer = torch.optim.AdamW(
+                params=param_groups,
+                **optimizer_cfg
+            )
 
         # configure ema
         ema: EMAModel = None

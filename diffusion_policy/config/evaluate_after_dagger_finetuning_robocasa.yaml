@@ -45,10 +45,10 @@ environment_file: "demo_gentex_im128_randcams_100_mg_envs.pkl"
 # environment_file: "demo_gentex_im256_randcams_100_train_envs.pkl"
 num_experiments: 50
 
-execution_horizon: 16
+execution_horizon: 8
 
 number_of_tasks: 50
-max_traj_len: 600
+max_traj_len: 400
 dataset_mode: "test"
 
 hydra:
