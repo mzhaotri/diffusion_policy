@@ -1,9 +1,9 @@
 name: PnPSinkToCounter
 # name: test
 
-img_obs_horizon: 2
-low_dim_obs_horizon: 1
-action_horizon: 16
+obs_horizon: 1
+# low_dim_obs_horizon: 1
+action_horizon: 32
 action_dim: 7
 ignore_proprioception: False
 
@@ -12,37 +12,37 @@ shape_meta: &shape_meta
   obs:
     left_image:
       shape: [3, 224, 224]
-      horizon: ${task.img_obs_horizon} # int
+      horizon: ${task.obs_horizon} # int
       type: rgb
       ignore_by_policy: False
     right_image:
       shape: [3, 224, 224]
-      horizon: ${task.img_obs_horizon} # int
+      horizon: ${task.obs_horizon} # int
       type: rgb
       ignore_by_policy: False
     gripper_image:
       shape: [3, 224, 224]
-      horizon: ${task.img_obs_horizon} # int
+      horizon: ${task.obs_horizon} # int
       type: rgb
       ignore_by_policy: False
     task_description:
       shape: [1024]
-      horizon: ${task.low_dim_obs_horizon} # int
+      horizon: ${task.obs_horizon} # int
       type: low_dim
       ignore_by_policy: False
     robot0_eef_pos:
       shape: [3]
-      horizon: ${task.low_dim_obs_horizon} # int
+      horizon: ${task.obs_horizon} # int
       type: low_dim
       ignore_by_policy: False
     robot0_eef_quat:
       shape: [4]
-      horizon: ${task.low_dim_obs_horizon} # int
+      horizon: ${task.obs_horizon} # int
       type: low_dim
       ignore_by_policy: False
     robot0_gripper_qpos:
       shape: [2]
-      horizon: ${task.low_dim_obs_horizon} # int
+      horizon: ${task.obs_horizon} # int
       type: low_dim
       ignore_by_policy: False
   action: 
@@ -68,8 +68,8 @@ dataset:
   sample_fps: 30
   video_fps: 30
   pred_horizon: ${task.action_horizon}
-  img_obs_horizon: ${task.img_obs_horizon}
-  low_dim_obs_horizon: ${task.low_dim_obs_horizon}
+  # img_obs_horizon: ${task.img_obs_horizon}
+  obs_horizon: ${task.obs_horizon}
   validation_split: 0
   action_dim: ${task.action_dim}
   swap_rgb: false

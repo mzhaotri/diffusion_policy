@@ -117,8 +117,8 @@ class InMemoryVideoDataset(Dataset):
         sample_fps: float,
         video_fps: float,
         pred_horizon: int,
-        obs_horizon: int,
-        # low_dim_obs_horizon: int,
+        img_obs_horizon: int,
+        low_dim_obs_horizon: int,
         validation_split: int,
         aug: dict,
         action_dim: int,
@@ -140,8 +140,8 @@ class InMemoryVideoDataset(Dataset):
         self.frame_height = frame_height
         self.stride = round(video_fps / sample_fps)
         self.pred_horizon = pred_horizon
-        self.img_obs_horizon = obs_horizon
-        self.low_dim_obs_horizon = obs_horizon
+        self.img_obs_horizon = img_obs_horizon
+        self.low_dim_obs_horizon = low_dim_obs_horizon
         self.action_dim = action_dim
         self.swap_rgb = swap_rgb
         self.aug = aug

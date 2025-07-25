@@ -151,7 +151,7 @@ def get_metric(y_true, y_pred):
 
 
 
-def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha=0.01, lb=False, CPband=True, suffix=''):
+def get_detection_with_plot(log_probs, successes, img_frames, demo_to_video_images, save_folder, alpha=0.01, lb=False, CPband=True, suffix=''):
     
 
     """Detect anomalies using prediction bands and create visualization plots.
@@ -160,8 +160,8 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     """
     
 
-    num_te = 15 # these are heldout for testing and evaluating failure detection
-    max_tr = 35 # these are used in CP construction
+    num_te = len(successes)-50 # these are heldout for testing and evaluating failure detection
+    max_tr = 50 # these are used in CP construction
 
     # the training rollouts are further split in D_calibA (of size num_train), and D_calibB (of size num_cal)
     num_train = int(max_tr/2)
@@ -337,18 +337,18 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
                 
                 if success == 0: # if failed, then correct detection
                     num_TP += 1
-                    fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
-                    print("TRUE POSITIVE AT index", global_indices_of_test[test_idx])
-                    plt.imshow(img)
-                    plt.title("TRUE POSITIVE DETECTION", fontsize=fsize)
-                    plt.show()
+                    # fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
+                    # print("TRUE POSITIVE AT index", global_indices_of_test[test_idx])
+                    # plt.imshow(img)
+                    # plt.title("TRUE POSITIVE DETECTION", fontsize=fsize)
+                    # plt.show()
                 else:
                     num_FP += 1 # if successful demo, then false positive
-                    fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
-                    print("FALSE POSITIVE AT index", global_indices_of_test[test_idx])
-                    plt.imshow(img)
-                    plt.title("FALSE POSITIVE DETECTION", fontsize=fsize)
-                    plt.show()
+                    # fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
+                    # print("FALSE POSITIVE AT index", global_indices_of_test[test_idx])
+                    # plt.imshow(img)
+                    # plt.title("FALSE POSITIVE DETECTION", fontsize=fsize)
+                    # plt.show()
                 break
 
             if t == len(log_prob_test_scores) - 1: # no detection made
@@ -375,6 +375,136 @@ def get_detection_with_plot(log_probs, successes, img_frames, save_folder, alpha
     print(f'### True Negative Rate (TNR): {TNR}')
     print(f'### Accuracy: {accuracy}')
     print(f'### Weighted Accuracy: {accuracy_weighted}')
+
+
+    # plot video
+    # for test_idx in range(len(log_probs_test_plt)):
+    #     log_prob_test_scores = log_probs_test_plt[test_idx]
+    #     success = successes_test_plt[test_idx]
+    #     observation_frames = img_frames[global_indices_of_test[test_idx]]
+    #     demo_key_into_videos = list(demo_to_video_images.keys())[global_indices_of_test[test_idx]]
+    #     video_frames = demo_to_video_images[demo_key_into_videos]
+    #     env_time_imgs = []
+    #     env_time_detection_flags = []
+    #     env_cp_band_scores = []
+    #     env_rollout_scores = []
+        
+    #     CP_upper_band = target_traj
+    #     for t in range(len(log_prob_test_scores)):
+    #         env_cp_band_scores.append([CP_upper_band[t]]*8)
+    #         env_rollout_scores.append([log_prob_test_scores[t]]*8)
+    #         if log_prob_test_scores[t] > CP_upper_band[t]:
+    #             env_time_imgs.append(video_frames[t:t+8])
+    #             env_time_detection_flags.append(1)  # Detection made
+    #         else:
+    #             env_time_imgs.append(video_frames[t:t+8])
+    #             env_time_detection_flags.append(0)
+    #     # Create video from env_time_imgs, and show an evolving plot of the CP band above the video
+    #     # if a detection is made, then highlight the frame with red border. The title should be the success or fail, plus whether how many detections were made
+    #     num_detections = sum(env_time_detection_flags)
+
+    import cv2
+    output_dir = save_folder
+
+    for test_idx in range(len(log_probs_test_plt)):
+        log_prob_test_scores = log_probs_test_plt[test_idx]
+        success = successes_test_plt[test_idx]
+        observation_frames = img_frames[global_indices_of_test[test_idx]]
+        # pdb.set_trace()
+        demo_key_into_videos = list(demo_to_video_images.keys())[global_indices_of_test[test_idx]]
+        video_frames = demo_to_video_images[demo_key_into_videos]
+        env_time_imgs = video_frames
+        env_time_detection_flags = []
+        env_cp_band_scores = []
+        env_rollout_scores = []
+        
+        CP_upper_band = target_traj
+        for t in range(len(log_prob_test_scores)):
+            env_cp_band_scores.append([CP_upper_band[t]]*8)
+            env_rollout_scores.append([log_prob_test_scores[t]]*8)
+            if log_prob_test_scores[t] > CP_upper_band[t]:
+                # env_time_imgs.extend(video_frames[t:t+8])
+                env_time_detection_flags.extend([1]*8)
+            else:
+                # env_time_imgs.extend(video_frames[t:t+8])
+                env_time_detection_flags.extend([0]*8)
+
+        num_detections = 0
+        for c in range(1, len(env_time_detection_flags)):
+            if env_time_detection_flags[c] == 1 and env_time_detection_flags[c-1] == 0:
+                num_detections += 1
+        # save the raw video to an mp4
+        # output_dir = save_folder
+        # video_filename = os.path.join(output_dir, f"demo_{test_idx}_{'success' if success else 'fail'}_{num_detections}_dets.mp4")
+
+        # # Write video
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # width, height = 256, 256
+        # out = cv2.VideoWriter(video_filename, fourcc, 10.0, (width, height))  # 10 FPS
+
+        # for t in range(len(env_time_imgs)):
+        #     img_sequence = env_time_imgs[t]
+        #     # Concatenate images in the sequence horizontally
+        #     frame = np.concatenate(img_sequence, axis=1)
+        #     # Convert to BGR if frame is RGB
+        #     if frame.shape[-1] == 3:
+        #         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR).copy()
+        #     else:
+        #         frame_bgr = frame.copy()
+            
+        #     # Highlight with red border if detection occurred
+        #     if env_time_detection_flags[t] == 1:
+        #         cv2.rectangle(frame_bgr, (0, 0), (frame_bgr.shape[1]-1, frame_bgr.shape[0]-1), (0, 0, 255), 4)
+            
+        #     # Add title (text overlay)
+        #     title = f"{'Success' if success else 'Fail'} | Detections: {num_detections}"
+        #     cv2.putText(frame_bgr, title, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+        #     out.write(frame_bgr)
+        # out.release()
+        # print(f"Saved video to: {video_filename}")
+
+        # Flatten list of frame sequences
+        flattened_frames = []
+        for t, frame_sequence in enumerate(env_time_imgs):
+            # for frame in frame_sequence:
+            # pdb.set_trace()
+            frame = np.concatenate(frame_sequence, axis=1)
+            # Convert to BGR if frame is RGB
+            if frame.shape[-1] == 3:
+                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR).copy()
+            else:
+                frame_bgr = frame.copy()
+            
+            # Highlight with red border if detection occurred
+            if env_time_detection_flags[t] == 1:
+                cv2.rectangle(frame_bgr, (0, 0), (frame_bgr.shape[1]-1, frame_bgr.shape[0]-1), (0, 0, 255), 4)
+            
+            # Add title (text overlay)
+            title = f"{'Success' if success else 'Fail'} | Detections: {num_detections}"
+            if success:
+                cv2.putText(frame_bgr, title, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            else:
+                # color red
+                cv2.putText(frame_bgr, title, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+            flattened_frames.append(frame_bgr)
+
+        # Get video size
+        height, width, _ = flattened_frames[0].shape
+        video_filename = os.path.join(output_dir, f"demo_{test_idx}_{'success' if success else 'fail'}_{num_detections}_dets.mp4")
+
+        # Write video
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(video_filename, fourcc, 10.0, (width, height))  # 10 FPS
+
+        for frame in flattened_frames:
+            out.write(frame)
+
+        out.release()
+        print(f"Saved video to: {video_filename}")
+
+
     
     return        
 
@@ -463,12 +593,13 @@ def main():
     experiment_name = args.experiment_name
     experiment_tag = args.experiment_tag
     policy_type = 'diffusion'
-    data_folder = f'data/outputs/{experiment_tag}_{experiment_name}_{task_name}/compute_rollout_scores_16'
+    data_folder = f'data/outputs/{experiment_tag}_{experiment_name}_{task_name}/compute_rollout_scores'
     successes = []
     all_log_probs = []
     all_images = []
-    N_rollouts = 50
+    N_rollouts = 500
     print("task_name", task_name)
+    demo_to_video_images = {}
 
     for demo_num in range(N_rollouts):
         dataset_path = data_folder + f'/{task_name}_{demo_num}_fd_scores.pkl'
@@ -480,6 +611,7 @@ def main():
             continue
         # pdb.set_trace()
         experiments = data['tasks'][task_name]['experiments']
+        
         for demo_key in experiments:
             logpzo_scores = experiments[demo_key]['logpzo_scores']
             scores = [elem.detach().cpu().numpy()[0] for elem in logpzo_scores]
@@ -495,6 +627,9 @@ def main():
             scores = scores_filtered
 
             img_frames = []
+            # pdb.set_trace()
+            video_frames = experiments[demo_key]['env_images']
+            demo_to_video_images[demo_key] = video_frames
             for t in range(len(scores)):
                 # pdb.set_trace()
                 leftcam, rightcam, grippercam = img_obs[t]['left_image'], img_obs[t]['right_image'], img_obs[t]['gripper_image']
@@ -521,6 +656,8 @@ def main():
     log_probs = np.array(padded_log_probs)
     successes = np.array(successes)
     print("success rate = ", np.mean(successes))
+    sr_std_err = np.std(successes) / np.sqrt(len(successes))
+    print(f"Success rate: {np.mean(successes):.2f} ± {sr_std_err:.2f}")
 
     fig, ax = plt.subplots(1, 1, figsize=(6, 6), sharex=True, sharey=True)
     for i in range(len(log_probs)):
@@ -531,17 +668,44 @@ def main():
     ax.set_title('All Trajectories', fontsize=fsize)
     plt.show()
 
-    # randomized_indices = np.random.permutation(len(log_probs))
-    # log_probs = log_probs[randomized_indices]
-    # successes = successes[randomized_indices]
+    plot_all_scores(log_probs, successes, fsize=fsize)
+
+    randomized_indices = np.random.permutation(len(log_probs))
+    log_probs = log_probs[randomized_indices]
+    successes = successes[randomized_indices]
     # all_images = all_images[randomized_indices]
+
+    success_indices = []
+    for i in range(len(log_probs)):
+        if successes[i] == 1 and len(success_indices) < 50:
+            success_indices.append(i)
+    print(f"Number of successes: {len(success_indices)}")
+
+
+    log_probs_reordered = []
+    successes_reordered = []
+    for i in range(len(success_indices)):
+        log_probs_reordered.append(log_probs[success_indices[i]])
+        successes_reordered.append(successes[success_indices[i]])
+
+    # for the rest of the data, add 50 from the rest
+    for j in range(len(log_probs)):
+        # if j not in success_indices and len(log_probs_reordered) < 50:
+        if j not in success_indices:
+            log_probs_reordered.append(log_probs[j])
+            successes_reordered.append(successes[j])
+
     
+    # convert to numpy arrays
+    log_probs_reordered = np.array(log_probs_reordered)
+    successes_reordered = np.array(successes_reordered)
 
-    print("log_probs shape:", log_probs.shape)
-    print("successes shape:", successes.shape)
+    print("log_probs shape:", log_probs_reordered.shape)
+    print("successes shape:", successes_reordered.shape)
 
-    get_detection_with_plot(log_probs, successes, all_images, data_folder, alpha=0.1)
+    get_detection_with_plot(log_probs_reordered, successes_reordered, all_images, demo_to_video_images, data_folder, alpha=0.1)
     print("success rate = ", np.mean(successes))
+    print(f"Success rate: {np.mean(successes):.2f} ± {sr_std_err:.2f}")
 
 if __name__ == "__main__":
     main()
